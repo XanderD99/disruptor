@@ -23,10 +23,10 @@ type Guild struct {
 	Settings GuildSettings `json:"settings" bson:"settings"`
 }
 
-type Chance float64
+type Chance int
 
 func (c Chance) String() string {
-	return fmt.Sprintf("%.2f%%", c*100)
+	return fmt.Sprintf("%d%%", c)
 }
 
 type GuildSettings struct {

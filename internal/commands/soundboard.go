@@ -3,14 +3,16 @@ package commands
 import (
 	"fmt"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/models"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
-	"github.com/XanderD99/discord-disruptor/pkg/util"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/XanderD99/discord-disruptor/internal/disruptor"
+	"github.com/XanderD99/discord-disruptor/internal/models"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
+	"github.com/XanderD99/discord-disruptor/pkg/util"
 )
 
 type soundboard struct {
@@ -181,67 +183,14 @@ func (p soundboard) list(e *handler.CommandEvent) error {
 		}
 	}
 
-	buildEmbedField := func(model models.Sound) discord.EmbedField {
-		inline := false
-
-		enbledEmojis := map[bool]string{
-			true:  "✅",
-			false: "❌",
-		}
-
-		return discord.EmbedField{
-			Name:   fmt.Sprintf("%s (%s)", model.Name, model.ID),
-			Value:  fmt.Sprintf("Enabled: %s", enbledEmojis[model.Enabled]),
-			Inline: &inline,
-		}
-	}
-
-	const maxFieldsPerEmbed = 25  // Discord limit is 25 fields per embed
-	const maxEmbedPerMessage = 10 // Discord limit is 10 embeds per message
-
-	buildAndSendEmbeds := func(title string, sounds []models.Sound) error {
-		fields := make([]discord.EmbedField, 0, len(sounds))
-		for _, sound := range sounds {
-			fields = append(fields, buildEmbedField(sound))
-		}
-
-		fieldChunks := util.Chunk(fields, maxFieldsPerEmbed)
-
-		embeds := make([]discord.Embed, 0, len(fieldChunks))
-		for i, chunk := range fieldChunks {
-			embed := discord.Embed{
-				Color:  0x5c5fea, // PrimaryColor
-				Fields: chunk,
-			}
-
-			if i == 0 {
-				embed.Title = title
-			}
-
-			embeds = append(embeds, embed)
-		}
-
-		embedChunks := util.Chunk(embeds, maxEmbedPerMessage)
-		var eg errgroup.Group
-
-		for _, chunk := range embedChunks {
-			eg.Go(func() error {
-				_, err := client.Rest().CreateMessage(e.Channel().ID(), discord.NewMessageCreateBuilder().SetEmbeds(chunk...).Build())
-				return err
-			})
-		}
-
-		return eg.Wait()
-	}
-
 	if len(globalSounds) > 0 {
-		if err := buildAndSendEmbeds("Global Sounds", globalSounds); err != nil {
+		if err := buildAndSendEmbeds(client, e.Channel().ID(), "Global Sounds", globalSounds); err != nil {
 			return fmt.Errorf("failed to send global sounds: %w", err)
 		}
 	}
 
 	if len(guildSounds) > 0 {
-		if err := buildAndSendEmbeds(fmt.Sprintf("Guild Sounds (%s)", guild.String()), guildSounds); err != nil {
+		if err := buildAndSendEmbeds(client, e.Channel().ID(), fmt.Sprintf("Guild Sounds (%s)", guild.String()), guildSounds); err != nil {
 			return fmt.Errorf("failed to send guild sounds: %w", err)
 		}
 	}
@@ -251,6 +200,59 @@ func (p soundboard) list(e *handler.CommandEvent) error {
 	}
 
 	return nil
+}
+
+const maxFieldsPerEmbed = 25  // Discord limit is 25 fields per embed
+const maxEmbedPerMessage = 10 // Discord limit is 10 embeds per message
+
+func buildEmbedField(model models.Sound) discord.EmbedField {
+	inline := false
+
+	enbledEmojis := map[bool]string{
+		true:  "✅",
+		false: "❌",
+	}
+
+	return discord.EmbedField{
+		Name:   fmt.Sprintf("%s (%s)", model.Name, model.ID),
+		Value:  fmt.Sprintf("Enabled: %s", enbledEmojis[model.Enabled]),
+		Inline: &inline,
+	}
+}
+
+func buildAndSendEmbeds(client bot.Client, channelID snowflake.ID, title string, sounds []models.Sound) error {
+	fields := make([]discord.EmbedField, 0, len(sounds))
+	for _, sound := range sounds {
+		fields = append(fields, buildEmbedField(sound))
+	}
+
+	fieldChunks := util.Chunk(fields, maxFieldsPerEmbed)
+
+	embeds := make([]discord.Embed, 0, len(fieldChunks))
+	for i, chunk := range fieldChunks {
+		embed := discord.Embed{
+			Color:  0x5c5fea, // PrimaryColor
+			Fields: chunk,
+		}
+
+		if i == 0 {
+			embed.Title = title
+		}
+
+		embeds = append(embeds, embed)
+	}
+
+	embedChunks := util.Chunk(embeds, maxEmbedPerMessage)
+	var eg errgroup.Group
+
+	for _, chunk := range embedChunks {
+		eg.Go(func() error {
+			_, err := client.Rest().CreateMessage(channelID, discord.NewMessageCreateBuilder().SetEmbeds(chunk...).Build())
+			return err
+		})
+	}
+
+	return eg.Wait()
 }
 
 var _ disruptor.Command = (*soundboard)(nil)

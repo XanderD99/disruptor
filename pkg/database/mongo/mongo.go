@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XanderD99/discord-disruptor/pkg/database"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/net/context"
+
+	"github.com/XanderD99/discord-disruptor/pkg/database"
 )
 
 var _ database.Database = (*MongoDB)(nil)
@@ -128,6 +129,9 @@ func (m *MongoDB) Update(ctx context.Context, entity any) error {
 
 	elemType := getElemType(entity)
 	typedID, err := getTypedId(idValue, elemType)
+	if err != nil {
+		return err
+	}
 
 	filter := bson.M{"id": typedID}
 	update := bson.M{"$set": updateDoc}
@@ -148,6 +152,9 @@ func (m *MongoDB) Delete(ctx context.Context, id string, entity any) error {
 	// Determine the correct ID type from the entity
 	elemType := getElemType(entity)
 	typedID, err := getTypedId(id, elemType)
+	if err != nil {
+		return err
+	}
 	_, err = collection.DeleteOne(ctx, bson.M{"id": typedID})
 	return err
 }
@@ -206,6 +213,9 @@ func (m *MongoDB) FindByID(ctx context.Context, id string, entity any) (any, err
 
 	elemType := getElemType(entity)
 	typedID, err := getTypedId(id, elemType)
+	if err != nil {
+		return nil, err
+	}
 	result := reflect.New(elemType).Interface()
 	err = collection.FindOne(ctx, bson.M{"id": typedID}).Decode(result)
 	if err != nil {

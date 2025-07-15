@@ -177,14 +177,14 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 		},
 	}
 
-	data, err := h.store.FindAll(ctx, []models.Guild{}, database.WithFilters(filter))
+	data, err := h.store.FindAll(ctx, models.Guild{}, database.WithFilters(filter))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find guilds: %w", err)
 	}
 
 	guilds, ok := data.([]models.Guild)
 	if !ok {
-		return nil, fmt.Errorf("expected []models.Guild, got %T", guilds)
+		return nil, fmt.Errorf("expected []models.Guild, got %T", data)
 	}
 
 	count := len(guilds)
