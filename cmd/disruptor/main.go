@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/sharding"
 
@@ -96,6 +97,9 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, store store.St
 					gateway.WithListeningActivity("to your commands"),
 				),
 			),
+		),
+		bot.WithCacheConfigOpts(
+			cache.WithCaches(cache.FlagsAll),
 		),
 	)
 	if err != nil {
