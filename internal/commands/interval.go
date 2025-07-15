@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
@@ -10,17 +11,18 @@ import (
 	"github.com/disgoorg/json"
 
 	"github.com/XanderD99/discord-disruptor/internal/disruptor"
+	"github.com/XanderD99/discord-disruptor/internal/models"
 	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
 	"github.com/XanderD99/discord-disruptor/pkg/util"
 )
 
 type interval struct {
 	manager scheduler.Manager
-	store   store.Store
+	store   database.Database
 }
 
-func Interval(store store.Store, manager scheduler.Manager) disruptor.Command {
+func Interval(store database.Database, manager scheduler.Manager) disruptor.Command {
 	return interval{
 		manager: manager,
 		store:   store,
@@ -51,13 +53,29 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	guild, err := i.store.Guilds().FindByID(ctx, event.GuildID().String())
+	guildID := event.GuildID()
+	if guildID == nil {
+		return fmt.Errorf("this command can only be used in a guild")
+	}
+
+	data, err := i.store.FindByID(ctx, guildID.String(), &models.Guild{})
 	if err != nil {
-		return fmt.Errorf("failed to find guild: %w", err)
+		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
+		data = models.NewGuild(*guildID)
+	}
+
+	if data == nil {
+		return fmt.Errorf("guild not found: %s", guildID)
+	}
+
+	guild, ok := data.(*models.Guild)
+	if !ok {
+		return fmt.Errorf("failed to cast guild data: %T", data)
 	}
 
 	intervalString, ok := d.OptString("duration")
 	if !ok {
+
 		embed := discord.NewEmbedBuilder()
 		embed.SetColor(util.RGBToInteger(255, 215, 0))
 
@@ -85,10 +103,11 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("invalid duration: %s, must be less than 24h", intervalString)
 	}
 
-	if err := i.store.Guilds().Update(ctx, guild.ID, guild); err != nil {
+	if err := i.store.Upsert(ctx, guild); err != nil {
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
-	if err := i.manager.AddGuild(guild.ID, guild.Settings.Interval); err != nil {
+
+	if err := i.manager.AddGuild(guildID.String(), guild.Settings.Interval); err != nil {
 		return fmt.Errorf("failed to add guild to manager: %w", err)
 	}
 

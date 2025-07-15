@@ -6,20 +6,20 @@ import (
 
 	"github.com/disgoorg/disgo/events"
 
+	"github.com/XanderD99/discord-disruptor/internal/models"
 	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
 )
 
-func GuildLeave(l *slog.Logger, s store.Store, m scheduler.Manager) func(*events.GuildLeave) {
+func GuildLeave(l *slog.Logger, s database.Database, m scheduler.Manager) func(*events.GuildLeave) {
 	return func(gr *events.GuildLeave) {
 		l = l.With(
 			slog.Group("guild", slog.String("id", gr.Guild.ID.String())),
 		)
 
-		l.Info("Guild removed")
+		l.Info("Left guild")
 
-		ctx := context.Background()
-		if err := s.Guilds().Delete(ctx, gr.Guild.ID.String()); err != nil {
+		if err := s.Delete(context.Background(), gr.GuildID.String(), models.Guild{}); err != nil {
 			l.Error("Failed to delete guild from store", slog.Any("error", err))
 		}
 

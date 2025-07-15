@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/XanderD99/discord-disruptor/internal/lavalink"
 	"github.com/XanderD99/discord-disruptor/internal/metrics"
-	"github.com/XanderD99/discord-disruptor/internal/store/api"
+	"github.com/XanderD99/discord-disruptor/pkg/database/mongo"
 	"github.com/XanderD99/discord-disruptor/pkg/logging"
 
 	"github.com/caarlos0/env/v11"
@@ -25,10 +25,11 @@ type Config struct {
 	// 📊 Metrics configuration for Prometheus
 	Metrics metrics.Config `envPrefix:"METRICS_" `
 
-	// 🌐 Configuration for the API store
-	API api.Config `envPrefix:"API_" `
 	// 🔗 List of Lavalink nodes to connect to
 	LavalinkNodes []lavalink.Node `envPrefix:"LAVALINK_NODE"`
+
+	// 🗄️ Configuration for the database
+	Database mongo.Config `envPrefix:"DATABASE_"`
 }
 
 func Load() (Config, error) {

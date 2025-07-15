@@ -10,10 +10,10 @@ import (
 
 	"github.com/XanderD99/discord-disruptor/internal/disruptor"
 	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
 )
 
-func NewManager(logger *slog.Logger, session *disruptor.Session, store store.Store, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
+func NewManager(logger *slog.Logger, session *disruptor.Session, store database.Database, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
 	m := &manager{
 		intervalGroups:        make(map[string]Scheduler),
 		maxGuildsPerScheduler: 100,

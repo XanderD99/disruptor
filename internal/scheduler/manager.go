@@ -7,7 +7,7 @@ import (
 
 	"github.com/XanderD99/discord-disruptor/internal/disruptor"
 	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
 )
 
 type Manager interface {
@@ -26,7 +26,7 @@ type manager struct {
 
 	// Dependencies
 	session  *disruptor.Session
-	store    store.Store
+	store    database.Database
 	lavalink lavalink.Lavalink
 	logger   *slog.Logger
 

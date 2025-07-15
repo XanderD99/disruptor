@@ -8,12 +8,13 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
 
+	"github.com/XanderD99/discord-disruptor/internal/models"
 	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
 )
 
 type guildReadyTaskBuilder struct {
-	store   store.Store
+	store   database.Database
 	manager scheduler.Manager
 }
 
@@ -29,29 +30,34 @@ func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildRe
 type guildReadyTask struct {
 	guildID snowflake.ID
 	shardID int
-	store   store.Store
+	store   database.Database
 	manager scheduler.Manager
 }
 
 // Execute implements workerpool.Task.
 func (t guildReadyTask) Execute(ctx context.Context) error {
-	guild, err := t.store.Guilds().FindByID(ctx, t.guildID.String())
+	data, err := t.store.FindByID(ctx, t.guildID.String(), &models.Guild{})
 	if err != nil {
-		guild, err = t.store.Guilds().Create(ctx, store.Guild{ID: t.guildID.String(), Settings: store.DefaultGuildSettings()})
-		if err != nil {
+		data = models.NewGuild(t.guildID)
+		if err := t.store.Create(ctx, data); err != nil {
 			return fmt.Errorf("failed to create guild %s in store: %w", t.guildID, err)
 		}
 	}
 
+	guild, ok := data.(*models.Guild)
+	if !ok {
+		return fmt.Errorf("failed to cast data to models.Guild for guild %s", t.guildID)
+	}
+
 	// Add guild to voice audio scheduler manager
-	if err := t.manager.AddGuild(guild.ID, guild.Settings.Interval); err != nil {
+	if err := t.manager.AddGuild(guild.ID.String(), guild.Settings.Interval); err != nil {
 		return fmt.Errorf("failed to add guild %s to voice audio scheduler manager: %w", t.guildID, err)
 	}
 
 	return nil
 }
 
-func GuildReady(l *slog.Logger, s store.Store, m scheduler.Manager) func(*events.GuildReady) {
+func GuildReady(l *slog.Logger, s database.Database, m scheduler.Manager) func(*events.GuildReady) {
 	guildReadyTaskBuilder := &guildReadyTaskBuilder{
 		store:   s,
 		manager: m,

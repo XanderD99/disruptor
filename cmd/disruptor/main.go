@@ -18,8 +18,8 @@ import (
 	"github.com/XanderD99/discord-disruptor/internal/lavalink"
 	"github.com/XanderD99/discord-disruptor/internal/metrics"
 	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
-	"github.com/XanderD99/discord-disruptor/internal/store/api"
+	"github.com/XanderD99/discord-disruptor/pkg/database"
+	"github.com/XanderD99/discord-disruptor/pkg/database/mongo"
 	"github.com/XanderD99/discord-disruptor/pkg/logging"
 	"github.com/XanderD99/discord-disruptor/pkg/processes"
 )
@@ -44,10 +44,10 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
-	pg, store := initStore(cfg)
+	pg, database := initDatabase(cfg)
 	pm.AddProcessGroup(pg)
 
-	pg, err = initDiscordProcesses(cfg, logger, store)
+	pg, err = initDiscordProcesses(cfg, logger, database)
 	if err != nil {
 		log.Fatalf("Error initializing Discord processes: %v", err)
 	}
@@ -72,16 +72,16 @@ func httpServers(cfg config.Config) (*processes.ProcessGroup, error) {
 	return group, nil
 }
 
-func initStore(cfg config.Config) (*processes.ProcessGroup, store.Store) {
-	group := processes.NewGroup("store", time.Second*5)
+func initDatabase(cfg config.Config) (*processes.ProcessGroup, database.Database) {
+	group := processes.NewGroup("database", time.Second*5)
 
-	store := api.New(cfg.API)
-	group.AddProcessWithCtx("strapi-store", store.Open, false, store.Close)
+	db := mongo.New(cfg.Database)
+	group.AddProcessWithCtx("mongo", db.Open, false, db.Close)
 
-	return group, store
+	return group, db
 }
 
-func initDiscordProcesses(cfg config.Config, logger *slog.Logger, store store.Store) (*processes.ProcessGroup, error) {
+func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database database.Database) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
 	session, err := disruptor.New(cfg.Token,
@@ -91,7 +91,7 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, store store.St
 			sharding.WithShardIDs(0, 1),
 			sharding.WithAutoScaling(true),
 			sharding.WithGatewayConfigOpts(
-				gateway.WithIntents(gateway.IntentGuilds, gateway.IntentGuildVoiceStates),
+				gateway.WithIntents(gateway.IntentGuilds, gateway.IntentGuildVoiceStates, gateway.IntentGuildExpressions),
 				gateway.WithCompress(true),
 				gateway.WithPresenceOpts(
 					gateway.WithListeningActivity("to your commands"),
@@ -110,15 +110,16 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, store store.St
 	lava := lavalink.New(cfg.LavalinkNodes, session, logger)
 	group.AddProcessWithCtx("disgolink", lava.Start, false, nil)
 
-	manager := scheduler.NewManager(logger, session, store, lava)
+	manager := scheduler.NewManager(logger, session, database, lava)
 	group.AddProcess("voice-audio-scheduler", manager.Start, false, manager.Stop)
 
 	err = session.AddCommands(
-		commands.Play(lava, store),
+		commands.Play(lava),
 		commands.Disconnect(lava),
 		commands.Next(manager),
-		commands.Interval(store, manager),
-		commands.Chance(store),
+		commands.Interval(database, manager),
+		commands.Chance(database),
+		commands.SoundBoard(database),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error adding commands: %w", err)
@@ -126,12 +127,14 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, store store.St
 
 	session.AddEventListeners(
 		bot.NewListenerFunc(handlers.VoiceStateUpdate(logger, lava)),
-		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava, store)),
+		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava, database)),
 
-		bot.NewListenerFunc(handlers.GuildJoin(logger, store, manager)),
-		bot.NewListenerFunc(handlers.GuildLeave(logger, store, manager)),
+		bot.NewListenerFunc(handlers.GuildJoin(logger, database, manager)),
+		bot.NewListenerFunc(handlers.GuildLeave(logger, database, manager)),
 
-		bot.NewListenerFunc(handlers.GuildReady(logger, store, manager)),
+		bot.NewListenerFunc(handlers.GuildReady(logger, database, manager)),
+		bot.NewListenerFunc(handlers.GuildSoundBoardSoundDelete(logger, database)),
+		bot.NewListenerFunc(handlers.GuildSoundBoardSoundUpdate(logger, database)),
 	)
 
 	return group, nil
