@@ -64,7 +64,13 @@ func (m *MongoDB) Open(ctx context.Context) error {
 			Password:      m.config.Auth.Password,
 			AuthMechanism: m.config.Auth.Mechanism,
 			AuthSource:    m.config.Auth.Source,
+			PasswordSet:   true, // Indicate that the password is set.
+
 		})
+	}
+
+	if err := opts.Validate(); err != nil {
+		return fmt.Errorf("invalid Mongo client options: %w", err)
 	}
 
 	client, err := mongo.Connect(ctx, opts)
@@ -72,8 +78,13 @@ func (m *MongoDB) Open(ctx context.Context) error {
 		return err
 	}
 
+	db := client.Database(m.config.Database)
+	if err := db.Client().Ping(ctx, nil); err != nil {
+		return fmt.Errorf("pinging the DB: %w", err)
+	}
+
 	m.client = client
-	m.database = client.Database(m.config.Database)
+	m.database = db
 
 	return nil
 }
