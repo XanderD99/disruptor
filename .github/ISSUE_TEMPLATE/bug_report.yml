@@ -1,0 +1,121 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the form below to help us understand and reproduce the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🐛 Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: ❌ Actual Behavior
+      description: What actually happened?
+      placeholder: What happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 Logs
+      description: Please paste any relevant log output
+      placeholder: |
+        ```
+        Paste logs here...
+        ```
+      render: shell
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🧩 Component
+      description: Which component is affected?
+      options:
+        - Audio/Voice
+        - Lavalink Integration
+        - Discord API
+        - Scheduler
+        - Configuration
+        - Database/Store
+        - Metrics
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 📦 Version
+      description: What version of the bot are you running?
+      placeholder: "v1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 🌍 Environment
+      description: Where is this happening?
+      options:
+        - Production
+        - Development
+        - Docker
+        - Local
+    validations:
+      required: true
+
+  - type: textarea
+    id: system
+    attributes:
+      label: 💻 System Information
+      description: System details
+      placeholder: |
+        - OS: [e.g. Ubuntu 22.04, Windows 11, macOS 13]
+        - Go Version: [e.g. 1.24]
+        - Docker Version: [if applicable]
+        - Architecture: [e.g. amd64, arm64]
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Add any other context about the problem here
+      placeholder: Screenshots, related issues, etc.
+    validations:
+      required: false

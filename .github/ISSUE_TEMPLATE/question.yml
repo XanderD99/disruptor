@@ -1,0 +1,107 @@
+name: ❓ Question/Help
+description: Ask a question or request help
+title: "[QUESTION] "
+labels: ["question", "help-wanted"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues before asking your question to avoid duplicates.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: ❓ Question
+      description: What's your question?
+      placeholder: Please be as specific as possible
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 📂 Category
+      description: What category does your question relate to?
+      options:
+        - Installation/Setup
+        - Configuration
+        - Audio/Voice Issues
+        - Lavalink
+        - Discord Integration
+        - Performance
+        - Troubleshooting
+        - Development
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🎯 Context
+      description: What are you trying to achieve?
+      placeholder: Describe your use case or goal
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 🔍 What I've Tried
+      description: What have you already attempted?
+      placeholder: |
+        - Checked the documentation
+        - Searched existing issues
+        - Tried configuration X
+        - etc.
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: ⚙️ Configuration
+      description: Relevant configuration (remove sensitive data)
+      placeholder: |
+        ```yaml
+        # Paste relevant config here
+        ```
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 Logs/Error Messages
+      description: Any relevant logs or error messages
+      placeholder: |
+        ```
+        Paste logs here...
+        ```
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 📦 Version
+      description: What version are you using?
+      placeholder: "v1.0.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 🌍 Environment
+      description: Environment details
+      placeholder: |
+        - OS:
+        - Docker:
+        - Go Version:
+        - Deployment method:
+    validations:
+      required: false

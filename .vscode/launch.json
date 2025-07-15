@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "cwd": "${workspaceFolder}",
+      "mode": "auto",
+      "name": "Launch app",
+      "program": "${workspaceFolder}/cmd/disruptor",
+      "request": "launch",
+      "type": "go",
+      "envFile": "${workspaceFolder}/configs/.env",
+    },
+  ],
+  "version": "0.2.0"
+}

@@ -1,0 +1,76 @@
+default_install_hook_types:
+  - pre-commit
+  - pre-push
+
+repos:
+  # ----------------------------- 🔒 Security Tools ---------------------------- #
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.22.1
+    hooks:
+      - id: gitleaks
+        name: "🔒 security · Detect hardcoded secrets"
+
+  # --------------------------- 🔍 Code Quality Tools -------------------------- #
+
+  ### GoLang ###
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+      - id: golangci-lint-repo-mod
+        name: "🚀 Go · Lint with golangci-lint"
+        args: ['-c', './ci/config/.golangci.yml', '--fix']
+      - id: go-test-repo-mod
+        name: "🧪 Go · Run unit tests"
+        args: [-tags=unit]
+      - id: go-test-repo-mod
+        name: "🧪 Go · Run integration tests"
+        args: [-tags=integration]
+        stages: [pre-push]
+
+  ### Makefile ###
+  - repo: https://github.com/mrtazz/checkmake.git
+    rev: 0.2.2
+    hooks:
+      - id: checkmake
+        name: "🐮 Makefile · Lint Makefile"
+
+  # ------------------------------ ⚙️ General Tools ------------------------------- #
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # ---------------------------- 📁 Filesystem Tools --------------------------- #
+      - id: check-yaml
+        name: "📁 filesystem/📝 check · Check yaml"
+      - id: check-json
+        name: "📁 filesystem/📝 check · Check json"
+        exclude: ^\.vscode/.*\.json$
+      - id: pretty-format-json
+        name: "📁 filesystem/📝 format · Format json"
+        exclude: ^\.vscode/.*\.json$
+        args: ['--autofix']
+      - id: end-of-file-fixer
+        name: "📁 filesystem/📝 format · Fix EOL"
+      - id: trailing-whitespace
+        name: "📁 filesystem/📝 format · Trailing whitespaces"
+      - id: check-executables-have-shebangs
+        name: "📁 filesystem/⚙️ exec · Verify shebang presence"
+      - id: check-shebang-scripts-are-executable
+        name: "📁 filesystem/⚙️ exec · Verify script permissions"
+      - id: check-case-conflict
+        name: "📁 filesystem/📝 names · Check case sensitivity"
+      - id: check-illegal-windows-names
+        name: "📁 filesystem/📝 names · Validate Windows filenames"
+      - id: check-symlinks
+        name: "📁 filesystem/🔗 symlink · Check symlink validity"
+      # ------------------------------- 🌳 Git Tools ------------------------------- #
+      - id: check-merge-conflict
+        name: "🌳 git · Detect conflict markers"
+      # - id: forbid-new-submodules
+      #   name: "🌳 git · Prevent submodule creation"
+      # - id: no-commit-to-branch
+      #   name: "🌳 git · Protect main branches"
+      #   args: ["--branch", "main", "--branch", "master"]
+      - id: check-added-large-files
+        name: "🌳 git · Block large file commits"
+        args: ['--maxkb=5000']

@@ -1,0 +1,12 @@
+**/.git
+**/node_modules
+**/.env*
+**/coverage.out
+**/coverage.html
+**/*.log
+**/tmp/
+**/temp/
+**/.vscode
+**/.idea
+**/Thumbs.db
+**/.DS_Store

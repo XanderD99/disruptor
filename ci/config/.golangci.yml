@@ -1,0 +1,29 @@
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  goconst:
+    min-len: 2
+    min-occurrences: 3
+  gocyclo:
+    min-complexity: 15
+  goimports:
+    local-prefixes: github.com/XanderD99/discord-disruptor
+  revive:
+    severity: warning
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - goimports
+    - misspell
+    - revive
+    - gofmt
+    - goconst
+    - gocyclo
+    - sloglint

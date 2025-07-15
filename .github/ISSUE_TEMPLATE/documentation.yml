@@ -1,0 +1,83 @@
+name: 📚 Documentation Issue
+description: Report missing, unclear, or incorrect documentation
+title: "[DOCS] "
+labels: ["documentation", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve our documentation! Please provide details about the documentation issue.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: 📝 Documentation Type
+      description: What type of documentation issue is this?
+      options:
+        - Missing documentation
+        - Incorrect information
+        - Unclear/confusing content
+        - Outdated information
+        - Broken links
+        - Typo/Grammar
+        - Code example issues
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 📍 Location
+      description: Where is the documentation issue located?
+      placeholder: "e.g., README.md, configs/README.md, line 42"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: ❌ Current Issue
+      description: Describe what's wrong with the current documentation
+      placeholder: What's missing, incorrect, or unclear?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: ✅ Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: What would you like to see instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🎯 Context
+      description: Why is this documentation important?
+      placeholder: How does this help users? What problem does it solve?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: audience
+    attributes:
+      label: 👥 Target Audience
+      description: Who would benefit from this documentation improvement?
+      options:
+        - label: New users/beginners
+        - label: Experienced users
+        - label: Developers/Contributors
+        - label: System administrators
+        - label: Bot operators
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Any other relevant information
+    validations:
+      required: false

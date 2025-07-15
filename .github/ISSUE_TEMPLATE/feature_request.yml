@@ -1,0 +1,130 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: ✨ Feature Summary
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: What feature would you like to see added?
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problem Statement
+      description: What problem does this feature solve?
+      placeholder: Is your feature request related to a problem? Please describe.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: A clear and concise description of what you want to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternatives Considered
+      description: Describe alternatives you've considered
+      placeholder: A clear and concise description of any alternative solutions or features you've considered.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🧩 Component
+      description: Which component would this feature affect?
+      options:
+        - Audio/Voice
+        - Lavalink Integration
+        - Discord API
+        - Scheduler
+        - Configuration
+        - Database/Store
+        - Metrics
+        - CLI/Commands
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 📊 Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my use case
+        - Critical - Blocking my usage
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: 📈 Impact
+      description: Who would benefit from this feature?
+      options:
+        - label: End users (Discord users)
+        - label: Bot administrators
+        - label: Developers/Contributors
+        - label: Server performance
+        - label: Monitoring/Observability
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: 📋 Examples/Use Cases
+      description: Provide examples of how this feature would be used
+      placeholder: |
+        Example scenarios where this feature would be useful:
+        1. ...
+        2. ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 🎨 Mockups/Wireframes
+      description: If applicable, add mockups or wireframes
+      placeholder: Links to images, sketches, or design ideas
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Add any other context or screenshots about the feature request
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: 🤝 Contribution
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I would like to implement this feature myself
+        - label: I can help with testing
+        - label: I can help with documentation
+        - label: I can provide feedback during development

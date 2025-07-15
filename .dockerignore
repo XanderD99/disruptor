@@ -1,0 +1,10 @@
+bin
+bin/**
+.scannerwork
+.scannerwork/**
+Jenkinsfile
+.dockerignore
+Dockerfile*
+zoneinfo.zip
+.git/logs/HEAD
+output/**

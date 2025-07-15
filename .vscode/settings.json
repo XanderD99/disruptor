@@ -1,0 +1,129 @@
+{
+  // Go tooling configuration
+  "go.alternateTools": {
+    "customFormatter": "golangci-lint"
+  },
+  "go.buildFlags": [
+    "-tags=unit"
+  ],
+  "go.formatFlags": [
+    "fmt",
+    "--stdin"
+  ],
+  "go.lintFlags": [
+    "--config=ci/config/.golangci.yml",
+    "--path-mode=abs",
+    "--fast-only",
+    "--fix"
+  ],
+  "go.lintTool": "golangci-lint",
+  "go.testTags": "unit",
+
+  // Enhanced Go development features
+  "go.useLanguageServer": true,
+  "go.formatTool": "goimports",
+  "go.lintOnSave": "package",
+  "go.vetOnSave": "package",
+  "go.buildOnSave": "package",
+  "go.coverOnSave": false,
+  "go.coverOnSingleTest": true,
+  "go.coverageDecorator": {
+    "type": "gutter",
+    "coveredHighlightColor": "rgba(64, 128, 64, 0.2)",
+    "uncoveredHighlightColor": "rgba(128, 64, 64, 0.2)",
+    "coveredGutterStyle": "blockgreen",
+    "uncoveredGutterStyle": "blockred"
+  },
+
+  // Testing configuration
+  "go.testEnvVars": {
+    "CGO_ENABLED": "1"
+  },
+  "go.testTimeout": "30s",
+  "go.testFlags": [
+    "-v",
+    "-race"
+  ],
+  "go.benchmarkFlags": [
+    "-benchmem"
+  ],
+
+  // Code completion and navigation
+  "go.autocompleteUnimportedPackages": true,
+  "go.gocodeAutoBuild": true,
+  "go.addTags": {
+    "tags": "json,yaml,xml",
+    "options": "json=omitempty",
+    "promptForTags": false,
+    "transform": "snakecase"
+  },
+
+  // Import organization
+  "go.goimportsLocalPrefix": "github.com/XanderD99/discord-disruptor",
+  "go.removeTags": {
+    "tags": "",
+    "options": "",
+    "promptForTags": false
+  },
+
+  // Editor behavior for Go files
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.rulers": [100, 120],
+    "editor.wordWrap": "off"
+  },
+
+  // Go mod files
+  "[go.mod]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // General editor improvements for Go development
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.quickSuggestionsDelay": 10,
+  "editor.inlineSuggest.enabled": true,
+
+  // File associations
+  "files.associations": {
+    "*.env.*": "properties",
+    "Dockerfile.*": "dockerfile",
+    "compose*.yml": "yaml",
+    "compose*.yaml": "yaml"
+  },
+
+  // Exclusions for better performance
+  "files.exclude": {
+    "**/output": true,
+    "**/coverage.out": true,
+    "**/coverage.html": true,
+    "**/.git": true,
+    "**/node_modules": true
+  },
+
+  // Search exclusions
+  "search.exclude": {
+    "**/output": true,
+    "**/coverage.out": true,
+    "**/coverage.html": true,
+    "**/node_modules": true
+  },
+
+  // Watcher exclusions for performance
+  "files.watcherExclude": {
+    "**/output/**": true,
+    "**/coverage.out": true,
+    "**/coverage.html": true,
+    "**/.git/objects/**": true,
+    "**/node_modules/**": true
+  }
+}
