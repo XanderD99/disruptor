@@ -12,3 +12,26 @@ services:
     expose:
       # lavalink exposes port 2333 to connect to for other containers (this is for documentation purposes only)
       - 2333
+
+  mongodb:
+    image: mongo:7-jammy
+    container_name: disruptor-mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=disruptor
+      - MONGO_INITDB_ROOT_PASSWORD=disruptor123
+      - MONGO_INITDB_DATABASE=disruptor
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    ports:
+      - "27017:27017"
+    expose:
+      # mongodb exposes port 27017 to connect to for other containers
+      - 27017
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local

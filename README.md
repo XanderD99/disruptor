@@ -82,14 +82,18 @@ Before you unleash the chaos, make sure you have:
 The bot provides slash commands to manage which soundboard sounds are used for disruptions:
 
 ### `/soundboard toggle`
+
 Enable or disable specific soundboard sounds:
-```
+
+```ansii
 /soundboard toggle sound:your-sound-name enabled:true
 ```
 
 ### `/soundboard list`
+
 View all available soundboard sounds and their current status:
-```
+
+```ansii
 /soundboard list
 ```
 
