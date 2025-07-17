@@ -17,7 +17,7 @@
     "--fix"
   ],
   "go.lintTool": "golangci-lint",
-  "go.testTags": "unit",
+  "go.testTags": "unit,integration",
 
   // Enhanced Go development features
   "go.useLanguageServer": true,

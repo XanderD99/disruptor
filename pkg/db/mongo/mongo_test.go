@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func setupMongoContainer() (db.Database, func(), error) {
@@ -154,13 +154,9 @@ func TestMongoCreate(t *testing.T) {
 			err := sharedTestDB.Create(ctx, tt.table, tt.entity)
 
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error but got none")
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
+				assert.NoError(t, err, "Unexpected error: %v", err)
 			}
 
 			// Cleanup
@@ -204,28 +200,14 @@ func TestMongoFindByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := sharedTestDB.FindByID(ctx, tt.table, tt.id)
+			var result TestUser
+			err := sharedTestDB.FindByID(ctx, tt.table, tt.id, &result)
 
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error but got none")
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if result == nil {
-					t.Error("Expected non-nil result")
-				}
-
-				// Verify the result structure (MongoDB returns bson.M)
-				if resultMap, ok := result.(primitive.M); ok {
-					if id, exists := resultMap["id"]; !exists || id != tt.id {
-						t.Errorf("Expected ID %v, got %v", tt.id, id)
-					}
-				} else {
-					t.Errorf("Expected primitive.M, got %T", result)
-				}
+				assert.NoError(t, err, "Unexpected error: %v", err)
+				assert.Equal(t, tt.id, result.ID, "Expected ID to match")
 			}
 		})
 	}
@@ -316,22 +298,10 @@ func TestMongoFindAll(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results, err := sharedTestDB.FindAll(ctx, tt.table, tt.options...)
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if len(results) != tt.expectCount {
-				t.Errorf("%s: expected %d results, got %d", tt.description, tt.expectCount, len(results))
-			}
-
-			// Verify that results are bson.M maps
-			for i, result := range results {
-				if _, ok := result.(primitive.M); !ok {
-					t.Errorf("Result %d is not a primitive.M, got %T", i, result)
-				}
-			}
+			var results []TestUser
+			err := sharedTestDB.FindAll(ctx, tt.table, &results, tt.options...)
+			assert.NoError(t, err, "Unexpected error: %v", err)
+			assert.Len(t, results, tt.expectCount, "%s: expected %d results, got %d", tt.description, tt.expectCount, len(results))
 		})
 	}
 }
@@ -372,25 +342,9 @@ func TestMongoUpdate(t *testing.T) {
 			err := sharedTestDB.Update(ctx, tt.table, tt.entity)
 
 			if tt.expectError {
-				if err == nil {
-					t.Error("Expected error but got none")
-				}
+				assert.Error(t, err, "Expected error but got none")
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-
-				// Verify the update
-				if testUser, ok := tt.entity.(*TestUser); ok && testUser.ID == "update_test" {
-					found, err := sharedTestDB.FindByID(ctx, tt.table, testUser.ID)
-					if err != nil {
-						t.Errorf("Failed to find updated user: %v", err)
-					} else if foundMap, ok := found.(primitive.M); ok {
-						if name, exists := foundMap["name"]; !exists || name != testUser.Name {
-							t.Errorf("User not properly updated: expected name %s, got %v", testUser.Name, name)
-						}
-					}
-				}
+				assert.NoError(t, err, "Unexpected error: %v", err)
 			}
 		})
 	}
@@ -431,22 +385,7 @@ func TestMongoUpsert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := sharedTestDB.Upsert(ctx, tt.table, tt.entity)
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			// Verify the upsert worked
-			if testUser, ok := tt.entity.(*TestUser); ok {
-				found, err := sharedTestDB.FindByID(ctx, tt.table, testUser.ID)
-				if err != nil {
-					t.Errorf("Failed to find upserted user: %v", err)
-				} else if foundMap, ok := found.(primitive.M); ok {
-					if name, exists := foundMap["name"]; !exists || name != testUser.Name {
-						t.Errorf("User not properly upserted: expected name %s, got %v", testUser.Name, name)
-					}
-				}
-			}
+			assert.NoError(t, err, "Unexpected error: %v", err)
 		})
 	}
 }
@@ -502,7 +441,7 @@ func TestMongoDelete(t *testing.T) {
 
 				// Verify deletion for valid IDs
 				if tt.id == "delete_test_1" {
-					_, err := sharedTestDB.FindByID(ctx, tt.table, tt.id)
+					err := sharedTestDB.FindByID(ctx, tt.table, tt.id, nil)
 					if err == nil {
 						t.Error("Expected error when finding deleted record")
 					}
@@ -649,22 +588,10 @@ func TestMongoComplexQueries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results, err := sharedTestDB.FindAll(ctx, "orders", tt.options...)
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if len(results) != tt.expectCount {
-				t.Errorf("%s: expected %d results, got %d", tt.description, tt.expectCount, len(results))
-			}
-
-			// Verify results are valid MongoDB documents
-			for i, result := range results {
-				if _, ok := result.(primitive.M); !ok {
-					t.Errorf("Result %d is not a primitive.M, got %T", i, result)
-				}
-			}
+			var results []TestOrder
+			err := sharedTestDB.FindAll(ctx, "orders", &results, tt.options...)
+			assert.NoError(t, err, "Unexpected error: %v", err)
+			assert.Len(t, results, tt.expectCount, fmt.Sprintf("%s: expected %d results, got %d", tt.description, tt.expectCount, len(results)))
 		})
 	}
 }

@@ -3,7 +3,6 @@ package config
 import (
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
-	"github.com/XanderD99/disruptor/pkg/db/file"
 	"github.com/XanderD99/disruptor/pkg/db/mongo"
 	"github.com/XanderD99/disruptor/pkg/logging"
 
@@ -33,7 +32,6 @@ type Config struct {
 	Database struct {
 		Type  string       `env:"TYPE" default:"mongo"`
 		Mongo mongo.Config `envPrefix:"MONGO_"`
-		File  file.Config  `envPrefix:"FILE_"`
 	} `envPrefix:"DATABASE_"`
 }
 

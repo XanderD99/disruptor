@@ -14,10 +14,10 @@ type Database interface {
 	Create(ctx context.Context, table string, entity any) error
 
 	// FindByID retrieves a document by its ID
-	FindByID(ctx context.Context, table string, id any) (any, error)
+	FindByID(ctx context.Context, table string, id any, result any) error
 
 	// FindAll retrieves documents with optional filters
-	FindAll(ctx context.Context, table string, opts ...FindOption) ([]any, error)
+	FindAll(ctx context.Context, table string, result any, opts ...FindOption) error
 
 	// Update updates an existing document
 	Update(ctx context.Context, table string, entity any) error

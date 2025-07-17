@@ -113,19 +113,13 @@ func (m *MongoDB) Create(ctx context.Context, table string, entity any) error {
 	return err
 }
 
-func (m *MongoDB) FindByID(ctx context.Context, table string, id any) (any, error) {
+func (m *MongoDB) FindByID(ctx context.Context, table string, id, result any) error {
 	collection := m.database.Collection(table)
 
-	var result bson.M
-	err := collection.FindOne(ctx, bson.M{"id": id}).Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return collection.FindOne(ctx, bson.M{"id": id}).Decode(result)
 }
 
-func (m *MongoDB) FindAll(ctx context.Context, table string, opts ...db.FindOption) ([]any, error) {
+func (m *MongoDB) FindAll(ctx context.Context, table string, results any, opts ...db.FindOption) error {
 	collection := m.database.Collection(table)
 
 	options := &db.FindOptions{}
@@ -137,22 +131,15 @@ func (m *MongoDB) FindAll(ctx context.Context, table string, opts ...db.FindOpti
 
 	cursor, err := collection.Find(ctx, options.Filters, findOpts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer cursor.Close(ctx)
 
-	var results []bson.M
-	if err := cursor.All(ctx, &results); err != nil {
-		return nil, err
+	if err := cursor.All(ctx, results); err != nil {
+		return err
 	}
 
-	// Convert to []any
-	items := make([]any, len(results))
-	for i, result := range results {
-		items[i] = result
-	}
-
-	return items, nil
+	return nil
 }
 
 func (m *MongoDB) Update(ctx context.Context, table string, entity any) error {
