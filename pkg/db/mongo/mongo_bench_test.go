@@ -104,7 +104,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 	b.Run("FindAll", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			var results any
+			var results []any
 			err := database.Find(ctx, "read_bench_users", &results, db.WithLimit(10))
 			if err != nil {
 				b.Errorf("FindAll failed: %v", err)
@@ -115,7 +115,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 	b.Run("FindAllWithFilter", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			var results any
+			var results []any
 			err := database.Find(ctx, "read_bench_users",
 				&results,
 				db.WithFilter("active", true),
