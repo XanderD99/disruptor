@@ -94,7 +94,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			id := fmt.Sprintf("read_bench_user_%d", i%1000)
 			var result any
-			err := database.FindByID(ctx, "read_bench_users", id, &result)
+			err := database.FindOne(ctx, "read_bench_users", &result, db.WithIDFilter(TestUser{ID: id}))
 			if err != nil {
 				b.Errorf("FindByID failed: %v", err)
 			}
@@ -105,7 +105,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			var results any
-			err := database.FindAll(ctx, "read_bench_users", &results, db.WithLimit(10))
+			err := database.Find(ctx, "read_bench_users", &results, db.WithLimit(10))
 			if err != nil {
 				b.Errorf("FindAll failed: %v", err)
 			}
@@ -116,7 +116,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			var results any
-			err := database.FindAll(ctx, "read_bench_users",
+			err := database.Find(ctx, "read_bench_users",
 				&results,
 				db.WithFilter("active", true),
 				db.WithLimit(10),
@@ -245,7 +245,7 @@ func BenchmarkMongoDB_ConcurrentOperations(b *testing.B) {
 			for pb.Next() {
 				id := fmt.Sprintf("concurrent_read_user_%d", i%500)
 				var result any
-				err := database.FindByID(ctx, "concurrent_read_users", id, &result)
+				err := database.FindOne(ctx, "concurrent_read_users", &result, db.WithIDFilter(TestUser{ID: id}))
 				if err != nil {
 					b.Errorf("Concurrent read failed: %v", err)
 				}

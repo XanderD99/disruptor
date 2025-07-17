@@ -171,13 +171,13 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 	)
 
 	filter := map[string]any{
-		"interval": interval, // Convert seconds to minutes
+		"interval": int64(interval),
 		"chance": map[string]any{
-			"$lte": chance,
+			"$gte": chance,
 		},
 	}
 
-	guilds, err := db.FindAll[models.Guild](ctx, h.db, db.WithFilters(filter))
+	guilds, err := db.Find[models.Guild](ctx, h.db, db.WithFilters(filter))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find guilds: %w", err)
 	}

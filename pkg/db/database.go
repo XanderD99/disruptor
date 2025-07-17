@@ -13,11 +13,11 @@ type Database interface {
 	// Create inserts a new document
 	Create(ctx context.Context, table string, entity any) error
 
-	// FindByID retrieves a document by its ID
-	FindByID(ctx context.Context, table string, id any, result any) error
+	// FindOne retrieves a single document
+	FindOne(ctx context.Context, table string, result any, opts ...FindOption) error
 
-	// FindAll retrieves documents with optional filters
-	FindAll(ctx context.Context, table string, result any, opts ...FindOption) error
+	// Find retrieves documents with optional filters
+	Find(ctx context.Context, table string, result any, opts ...FindOption) error
 
 	// Update updates an existing document
 	Update(ctx context.Context, table string, entity any) error
@@ -32,8 +32,11 @@ type Database interface {
 	Count(ctx context.Context, table string, opts ...FindOption) (int64, error)
 }
 
+type Option[T any] func(*T)
+
 // FindOption allows for flexible query configuration
-type FindOption func(*FindOptions)
+
+type FindOption Option[FindOptions]
 
 type FindOptions struct {
 	Filters    map[string]any
@@ -56,6 +59,20 @@ type Sort map[string]SortDirection
 func WithFilters(filters map[string]any) FindOption {
 	return func(opts *FindOptions) {
 		opts.Filters = filters
+	}
+}
+
+func WithIDFilter[T any](entity T) FindOption {
+	id, err := GetEntityID(entity)
+	if err != nil {
+		return func(opts *FindOptions) {}
+	}
+
+	return func(opts *FindOptions) {
+		if opts.Filters == nil {
+			opts.Filters = make(map[string]any)
+		}
+		opts.Filters["id"] = id
 	}
 }
 

@@ -11,12 +11,12 @@ func Create[T any](ctx context.Context, db Database, entity T) error {
 	return db.Create(ctx, table, entity)
 }
 
-// FindByID retrieves an entity by ID with type safety
-func FindByID[T any](ctx context.Context, db Database, id any) (T, error) {
+// FindOne retrieves an entity by ID with type safety
+func FindOne[T any](ctx context.Context, db Database, opts ...FindOption) (T, error) {
 	var result T
 	table := getTableName(result)
 
-	err := db.FindByID(ctx, table, id, &result)
+	err := db.FindOne(ctx, table, &result, opts...)
 	if err != nil {
 		return result, err
 	}
@@ -24,13 +24,13 @@ func FindByID[T any](ctx context.Context, db Database, id any) (T, error) {
 	return result, nil
 }
 
-// FindAll retrieves all entities with type safety
-func FindAll[T any](ctx context.Context, db Database, opts ...FindOption) ([]T, error) {
+// Find retrieves all entities with type safety
+func Find[T any](ctx context.Context, db Database, opts ...FindOption) ([]T, error) {
 	var zero T
 	table := getTableName(zero)
 
 	var results []T
-	err := db.FindAll(ctx, table, &results, opts...)
+	err := db.Find(ctx, table, &results, opts...)
 	if err != nil {
 		return nil, err
 	}

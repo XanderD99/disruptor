@@ -181,7 +181,7 @@ func TestMongoFindByID(t *testing.T) {
 	tests := []struct {
 		name        string
 		table       string
-		id          any
+		id          string
 		expectError bool
 	}{
 		{
@@ -201,7 +201,7 @@ func TestMongoFindByID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var result TestUser
-			err := sharedTestDB.FindByID(ctx, tt.table, tt.id, &result)
+			err := sharedTestDB.FindOne(ctx, tt.table, &result, db.WithIDFilter(TestUser{ID: tt.id}))
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected error but got none")
@@ -299,7 +299,7 @@ func TestMongoFindAll(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var results []TestUser
-			err := sharedTestDB.FindAll(ctx, tt.table, &results, tt.options...)
+			err := sharedTestDB.Find(ctx, tt.table, &results, tt.options...)
 			assert.NoError(t, err, "Unexpected error: %v", err)
 			assert.Len(t, results, tt.expectCount, "%s: expected %d results, got %d", tt.description, tt.expectCount, len(results))
 		})
@@ -409,7 +409,7 @@ func TestMongoDelete(t *testing.T) {
 	tests := []struct {
 		name        string
 		table       string
-		id          any
+		id          string
 		expectError bool
 	}{
 		{
@@ -441,7 +441,8 @@ func TestMongoDelete(t *testing.T) {
 
 				// Verify deletion for valid IDs
 				if tt.id == "delete_test_1" {
-					err := sharedTestDB.FindByID(ctx, tt.table, tt.id, nil)
+					var result any
+					err := sharedTestDB.FindOne(ctx, tt.table, &result, db.WithIDFilter(TestUser{ID: tt.id}))
 					if err == nil {
 						t.Error("Expected error when finding deleted record")
 					}
@@ -589,7 +590,7 @@ func TestMongoComplexQueries(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var results []TestOrder
-			err := sharedTestDB.FindAll(ctx, "orders", &results, tt.options...)
+			err := sharedTestDB.Find(ctx, "orders", &results, tt.options...)
 			assert.NoError(t, err, "Unexpected error: %v", err)
 			assert.Len(t, results, tt.expectCount, fmt.Sprintf("%s: expected %d results, got %d", tt.description, tt.expectCount, len(results)))
 		})

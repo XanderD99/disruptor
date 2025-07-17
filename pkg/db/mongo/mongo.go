@@ -113,13 +113,19 @@ func (m *MongoDB) Create(ctx context.Context, table string, entity any) error {
 	return err
 }
 
-func (m *MongoDB) FindByID(ctx context.Context, table string, id, result any) error {
+func (m *MongoDB) FindOne(ctx context.Context, table string, result any, opts ...db.FindOption) error {
 	collection := m.database.Collection(table)
+	options := &db.FindOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
 
-	return collection.FindOne(ctx, bson.M{"id": id}).Decode(result)
+	findOpts := m.buildFindOneOptions(options)
+
+	return collection.FindOne(ctx, options.Filters, findOpts).Decode(result)
 }
 
-func (m *MongoDB) FindAll(ctx context.Context, table string, results any, opts ...db.FindOption) error {
+func (m *MongoDB) Find(ctx context.Context, table string, results any, opts ...db.FindOption) error {
 	collection := m.database.Collection(table)
 
 	options := &db.FindOptions{}
@@ -216,6 +222,20 @@ func (m *MongoDB) Count(ctx context.Context, table string, opts ...db.FindOption
 }
 
 // Helper methods
+func (m *MongoDB) buildFindOneOptions(opts *db.FindOptions) *options.FindOneOptions {
+	findOpts := options.FindOne()
+
+	if len(opts.Projection) > 0 {
+		projection := bson.M{}
+		for _, field := range opts.Projection {
+			projection[field] = 1
+		}
+		findOpts.SetProjection(projection)
+	}
+
+	return findOpts
+}
+
 func (m *MongoDB) buildFindOptions(opts *db.FindOptions) *options.FindOptions {
 	findOpts := options.Find()
 

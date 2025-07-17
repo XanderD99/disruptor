@@ -54,7 +54,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	guild, err := db.FindByID[models.Guild](ctx, c.db, guildID.String())
+	guild, err := db.FindOne[models.Guild](ctx, c.db, db.WithIDFilter(models.Guild{ID: *guildID}))
 	if err != nil {
 		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
 		guild = *models.NewGuild(*guildID)

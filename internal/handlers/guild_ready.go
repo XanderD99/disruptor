@@ -36,7 +36,7 @@ type guildReadyTask struct {
 
 // Execute implements workerpool.Task.
 func (t guildReadyTask) Execute(ctx context.Context) error {
-	guild, err := db.FindByID[models.Guild](ctx, t.db, t.guildID)
+	guild, err := db.FindOne[models.Guild](ctx, t.db, db.WithIDFilter(models.Guild{ID: t.guildID}))
 	if err != nil {
 		guild = *models.NewGuild(t.guildID)
 		if err := db.Create(ctx, t.db, guild); err != nil {
