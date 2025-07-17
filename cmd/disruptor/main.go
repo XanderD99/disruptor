@@ -18,8 +18,8 @@ import (
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/database"
-	"github.com/XanderD99/disruptor/pkg/database/mongo"
+	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/db/mongo"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
 )
@@ -44,7 +44,10 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
-	pg, database := initDatabase(cfg)
+	pg, database, err := initDatabase(cfg)
+	if err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
 	pm.AddProcessGroup(pg)
 
 	pg, err = initDiscordProcesses(cfg, logger, database)
@@ -72,16 +75,20 @@ func httpServers(cfg config.Config) (*processes.ProcessGroup, error) {
 	return group, nil
 }
 
-func initDatabase(cfg config.Config) (*processes.ProcessGroup, database.Database) {
+func initDatabase(cfg config.Config) (*processes.ProcessGroup, db.Database, error) {
 	group := processes.NewGroup("database", time.Second*5)
 
-	db := mongo.New(cfg.Database)
-	group.AddProcessWithCtx("mongo", db.Open, false, db.Close)
+	switch cfg.Database.Type {
+	case "mongo":
+		db := mongo.New(cfg.Database.Mongo)
+		group.AddProcessWithCtx("mongo", db.Connect, false, db.Disconnect)
+		return group, db, nil
+	}
 
-	return group, db
+	return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
 }
 
-func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database database.Database) (*processes.ProcessGroup, error) {
+func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database db.Database) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
 	session, err := disruptor.New(cfg.Token,
@@ -126,7 +133,7 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database datab
 
 	session.AddEventListeners(
 		bot.NewListenerFunc(handlers.VoiceStateUpdate(logger, lava)),
-		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava, database)),
+		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava)),
 
 		bot.NewListenerFunc(handlers.GuildJoin(logger, database, manager)),
 		bot.NewListenerFunc(handlers.GuildLeave(logger, database, manager)),

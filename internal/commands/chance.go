@@ -11,17 +11,17 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
-	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/db"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type chance struct {
-	store database.Database
+	db db.Database
 }
 
-func Chance(store database.Database) disruptor.Command {
+func Chance(db db.Database) disruptor.Command {
 	return chance{
-		store: store,
+		db: db,
 	}
 }
 
@@ -54,19 +54,10 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	data, err := c.store.FindByID(ctx, guildID.String(), &models.Guild{})
+	guild, err := db.FindByID[models.Guild](ctx, c.db, guildID.String())
 	if err != nil {
 		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
-		data = models.NewGuild(*guildID)
-	}
-
-	if data == nil {
-		return fmt.Errorf("guild not found: %s", guildID)
-	}
-
-	guild, ok := data.(*models.Guild)
-	if !ok {
-		return fmt.Errorf("failed to cast guild data: %T", data)
+		guild = *models.NewGuild(*guildID)
 	}
 
 	percentage, ok := d.OptInt("percentage")
@@ -91,7 +82,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 
 	guild.Chance = models.Chance(percentage)
 
-	if err := c.store.Upsert(ctx, guild); err != nil {
+	if err := db.Upsert(ctx, c.db, guild); err != nil {
 		return fmt.Errorf("failed to update guild chance: %w", err)
 	}
 
@@ -106,4 +97,4 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 	return nil
 }
 
-var _ disruptor.Command = (*play)(nil)
+var _ disruptor.Command = (*chance)(nil)

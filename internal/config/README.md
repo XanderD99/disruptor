@@ -15,12 +15,17 @@
  - `CONFIG_LAVALINK_NODEADDRESS` (default: `localhost:2333`) - 🌐 Lavalink server address (e.g., localhost:2333)
  - `CONFIG_LAVALINK_NODEPASSWORD` - 🔑 Lavalink server password
  - `CONFIG_LAVALINK_NODESECURE` (default: `false`) - 🔒 Use secure connection (wss)
- - `CONFIG_DATABASE_MONGO_HOSTS` (comma-separated, default: `localhost:27017`) - 
- - `CONFIG_DATABASE_MONGO_AUTH` (default: `true`) - 
-   - `CONFIG_DATABASE_MONGO_AUTH_ENABLED` (default: `true`) - 
-   - `CONFIG_DATABASE_MONGO_AUTH_USERNAME` - 
-   - `CONFIG_DATABASE_MONGO_AUTH_PASSWORD` - 
-   - `CONFIG_DATABASE_MONGO_AUTH_MECHANISM` (default: `SCRAM-SHA-256`) - 
-   - `CONFIG_DATABASE_MONGO_AUTH_SOURCE` (default: `admin`) - 
- - `CONFIG_DATABASE_MONGO_DATABASE` (default: `disruptor`) - 
-
+ - `CONFIG_DATABASE_TYPE` (default: `mongo`) -
+ - `CONFIG_DATABASE_MONGO_HOSTS` (comma-separated, default: `localhost:27017`) -
+ - `CONFIG_DATABASE_MONGO_DATABASE` (default: `disruptor`) -
+ - `CONFIG_DATABASE_MONGO_AUTH_ENABLED` (default: `true`) -
+ - `CONFIG_DATABASE_MONGO_AUTH_USERNAME` -
+ - `CONFIG_DATABASE_MONGO_AUTH_PASSWORD` -
+ - `CONFIG_DATABASE_MONGO_AUTH_MECHANISM` (default: `SCRAM-SHA-256`) -
+ - `CONFIG_DATABASE_MONGO_AUTH_SOURCE` (default: `admin`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MIN_SIZE` (default: `10`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MAX_SIZE` (default: `100`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MAX_CONNECTING` (default: `10`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MAX_IDLE_TIME` (default: `30m`) -
+ - `CONFIG_DATABASE_MONGO_TIMEOUT_CONNECT` (default: `10s`) -
+ - `CONFIG_DATABASE_MONGO_TIMEOUT_QUERY` (default: `30s`) -

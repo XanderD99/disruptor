@@ -10,11 +10,11 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
 type guildReadyTaskBuilder struct {
-	store   database.Database
+	db      db.Database
 	manager scheduler.Manager
 }
 
@@ -22,7 +22,7 @@ func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildRe
 	return guildReadyTask{
 		guildID: guildID,
 		shardID: shardID,
-		store:   b.store,
+		db:      b.db,
 		manager: b.manager,
 	}
 }
@@ -30,23 +30,18 @@ func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildRe
 type guildReadyTask struct {
 	guildID snowflake.ID
 	shardID int
-	store   database.Database
+	db      db.Database
 	manager scheduler.Manager
 }
 
 // Execute implements workerpool.Task.
 func (t guildReadyTask) Execute(ctx context.Context) error {
-	data, err := t.store.FindByID(ctx, t.guildID.String(), &models.Guild{})
+	guild, err := db.FindByID[models.Guild](ctx, t.db, t.guildID)
 	if err != nil {
-		data = models.NewGuild(t.guildID)
-		if err := t.store.Create(ctx, data); err != nil {
+		guild = *models.NewGuild(t.guildID)
+		if err := db.Create(ctx, t.db, guild); err != nil {
 			return fmt.Errorf("failed to create guild %s in store: %w", t.guildID, err)
 		}
-	}
-
-	guild, ok := data.(*models.Guild)
-	if !ok {
-		return fmt.Errorf("failed to cast data to models.Guild for guild %s", t.guildID)
 	}
 
 	// Add guild to voice audio scheduler manager
@@ -57,9 +52,9 @@ func (t guildReadyTask) Execute(ctx context.Context) error {
 	return nil
 }
 
-func GuildReady(l *slog.Logger, s database.Database, m scheduler.Manager) func(*events.GuildReady) {
+func GuildReady(l *slog.Logger, db db.Database, m scheduler.Manager) func(*events.GuildReady) {
 	guildReadyTaskBuilder := &guildReadyTaskBuilder{
-		store:   s,
+		db:      db,
 		manager: m,
 	}
 

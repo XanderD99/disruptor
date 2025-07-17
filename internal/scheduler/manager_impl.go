@@ -12,16 +12,16 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
-	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
-func NewManager(logger *slog.Logger, session *disruptor.Session, store database.Database, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
+func NewManager(logger *slog.Logger, session *disruptor.Session, db db.Database, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
 	m := &manager{
 		intervalGroups:        make(map[string]Scheduler),
 		maxGuildsPerScheduler: 100,
 		session:               session,
 		lavalink:              lavalink,
-		store:                 store,
+		db:                    db,
 		logger:                logger.With(slog.String("component", "voice_audio_scheduler_manager")),
 	}
 
@@ -78,7 +78,7 @@ func (m *manager) AddScheduler(opts ...Option[scheduler]) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	handler := NewHandler(m.session, m.store, m.lavalink)
+	handler := NewHandler(m.session, m.db, m.lavalink)
 	group := NewScheduler(m.logger, handler, opts...)
 	interval := group.GetInterval()
 
@@ -199,7 +199,7 @@ func (m *manager) findOrCreateSchedulerWithCapacity(interval time.Duration) (str
 		return key, scheduler
 	}
 
-	handler := NewHandler(m.session, m.store, m.lavalink)
+	handler := NewHandler(m.session, m.db, m.lavalink)
 	scheduler := NewScheduler(
 		m.logger,
 		handler,

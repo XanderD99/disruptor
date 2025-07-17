@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
-	"github.com/XanderD99/disruptor/pkg/database/mongo"
+	"github.com/XanderD99/disruptor/pkg/db/mongo"
 	"github.com/XanderD99/disruptor/pkg/logging"
 
 	"github.com/caarlos0/env/v11"
@@ -29,7 +29,10 @@ type Config struct {
 	LavalinkNodes []lavalink.Node `envPrefix:"LAVALINK_NODE"`
 
 	// 🗄️ Configuration for the database
-	Database mongo.Config `envPrefix:"DATABASE_"`
+	Database struct {
+		Type  string       `env:"TYPE" default:"mongo"`
+		Mongo mongo.Config `envPrefix:"MONGO_"`
+	} `envPrefix:"DATABASE_"`
 }
 
 func Load() (Config, error) {

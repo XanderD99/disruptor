@@ -11,11 +11,10 @@ import (
 	disgolavalink "github.com/disgoorg/disgolink/v3/lavalink"
 
 	"github.com/XanderD99/disruptor/internal/lavalink"
-	"github.com/XanderD99/disruptor/pkg/database"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
-func VoiceServerUpdate(logger *slog.Logger, lava lavalink.Lavalink, db database.Database) func(*events.VoiceServerUpdate) {
+func VoiceServerUpdate(logger *slog.Logger, lava lavalink.Lavalink) func(*events.VoiceServerUpdate) {
 	logger = logger.With(slog.String("event", "voice_server_update"))
 
 	return func(vsu *events.VoiceServerUpdate) {

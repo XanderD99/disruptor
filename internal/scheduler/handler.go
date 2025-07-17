@@ -14,7 +14,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/models"
-	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/db"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
@@ -24,7 +24,7 @@ type Handler interface {
 
 type handler struct {
 	session  *disruptor.Session
-	store    database.Database
+	db       db.Database
 	lavalink lavalink.Lavalink // Assuming lavalink is an interface defined in your project
 
 	workerPool chan struct{} // Semaphore for controlling concurrent workers
@@ -32,10 +32,10 @@ type handler struct {
 
 var maxWorkers = 10 // Maximum number of concurrent workers
 
-func NewHandler(session *disruptor.Session, store database.Database, lavalink lavalink.Lavalink) Handler {
+func NewHandler(session *disruptor.Session, db db.Database, lavalink lavalink.Lavalink) Handler {
 	return handler{
 		session:    session,
-		store:      store,
+		db:         db,
 		lavalink:   lavalink,
 		workerPool: make(chan struct{}, maxWorkers),
 	}
@@ -177,14 +177,9 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 		},
 	}
 
-	data, err := h.store.FindAll(ctx, models.Guild{}, database.WithFilters(filter))
+	guilds, err := db.FindAll[models.Guild](ctx, h.db, db.WithFilters(filter))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find guilds: %w", err)
-	}
-
-	guilds, ok := data.([]models.Guild)
-	if !ok {
-		return nil, fmt.Errorf("expected []models.Guild, got %T", data)
 	}
 
 	count := len(guilds)

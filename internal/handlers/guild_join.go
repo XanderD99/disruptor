@@ -3,15 +3,16 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/disgoorg/disgo/events"
 
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
-func GuildJoin(l *slog.Logger, s database.Database, m scheduler.Manager) func(*events.GuildJoin) {
+func GuildJoin(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events.GuildJoin) {
 
 	return func(gj *events.GuildJoin) {
 		l = l.With(slog.Group("guild", slog.String("id", gj.Guild.ID.String())))
@@ -20,7 +21,10 @@ func GuildJoin(l *slog.Logger, s database.Database, m scheduler.Manager) func(*e
 
 		guild := models.NewGuild(gj.Guild.ID)
 
-		if err := s.Create(context.Background(), &guild); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := db.Create(ctx, d, guild); err != nil {
 			l.Error("Failed to create guild in store", slog.Any("error", err))
 			return
 		}
