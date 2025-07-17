@@ -8,20 +8,17 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/lavalink"
 )
 
 type play struct {
 	lavalink lavalink.Lavalink
-	store    store.Store
 }
 
-func Play(lavalink lavalink.Lavalink, store store.Store) disruptor.Command {
+func Play(lavalink lavalink.Lavalink) disruptor.Command {
 	return play{
 		lavalink: lavalink,
-		store:    store,
 	}
 }
 

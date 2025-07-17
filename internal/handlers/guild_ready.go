@@ -8,12 +8,13 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
 
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
 type guildReadyTaskBuilder struct {
-	store   store.Store
+	db      db.Database
 	manager scheduler.Manager
 }
 
@@ -21,7 +22,7 @@ func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildRe
 	return guildReadyTask{
 		guildID: guildID,
 		shardID: shardID,
-		store:   b.store,
+		db:      b.db,
 		manager: b.manager,
 	}
 }
@@ -29,31 +30,31 @@ func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildRe
 type guildReadyTask struct {
 	guildID snowflake.ID
 	shardID int
-	store   store.Store
+	db      db.Database
 	manager scheduler.Manager
 }
 
 // Execute implements workerpool.Task.
 func (t guildReadyTask) Execute(ctx context.Context) error {
-	guild, err := t.store.Guilds().FindByID(ctx, t.guildID.String())
+	guild, err := db.FindOne[models.Guild](ctx, t.db, db.WithIDFilter(models.Guild{ID: t.guildID}))
 	if err != nil {
-		guild, err = t.store.Guilds().Create(ctx, store.Guild{ID: t.guildID.String(), Settings: store.DefaultGuildSettings()})
-		if err != nil {
+		guild = *models.NewGuild(t.guildID)
+		if err := db.Create(ctx, t.db, guild); err != nil {
 			return fmt.Errorf("failed to create guild %s in store: %w", t.guildID, err)
 		}
 	}
 
 	// Add guild to voice audio scheduler manager
-	if err := t.manager.AddGuild(guild.ID, guild.Settings.Interval); err != nil {
+	if err := t.manager.AddGuild(guild.ID.String(), guild.Interval); err != nil {
 		return fmt.Errorf("failed to add guild %s to voice audio scheduler manager: %w", t.guildID, err)
 	}
 
 	return nil
 }
 
-func GuildReady(l *slog.Logger, s store.Store, m scheduler.Manager) func(*events.GuildReady) {
+func GuildReady(l *slog.Logger, db db.Database, m scheduler.Manager) func(*events.GuildReady) {
 	guildReadyTaskBuilder := &guildReadyTaskBuilder{
-		store:   s,
+		db:      db,
 		manager: m,
 	}
 

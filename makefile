@@ -64,5 +64,5 @@ run: ## Run the app
 test: ## Run tests
 	go test $(TEST_FLAGS) ./... $(BUILD_FLAGS)
 
-docker: ## Build: docker
+docker-build: ## Build: docker
 	docker build --target final $(DOCKER_BUILD_ARGS) -t $(PACKAGE):$(VERSION) -f $(DOCKER_FILE_PATH) .

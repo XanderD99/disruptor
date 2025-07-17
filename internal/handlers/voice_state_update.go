@@ -6,7 +6,7 @@ import (
 
 	"github.com/disgoorg/disgo/events"
 
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/lavalink"
 )
 
 func VoiceStateUpdate(logger *slog.Logger, lava lavalink.Lavalink) func(*events.GuildVoiceStateUpdate) {

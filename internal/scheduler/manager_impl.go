@@ -8,18 +8,20 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/disgoorg/snowflake/v2"
+
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
-func NewManager(logger *slog.Logger, session *disruptor.Session, store store.Store, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
+func NewManager(logger *slog.Logger, session *disruptor.Session, db db.Database, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
 	m := &manager{
 		intervalGroups:        make(map[string]Scheduler),
 		maxGuildsPerScheduler: 100,
 		session:               session,
 		lavalink:              lavalink,
-		store:                 store,
+		db:                    db,
 		logger:                logger.With(slog.String("component", "voice_audio_scheduler_manager")),
 	}
 
@@ -76,20 +78,17 @@ func (m *manager) AddScheduler(opts ...Option[scheduler]) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	handler := NewHandler(m.session, m.store, m.lavalink)
+	handler := NewHandler(m.session, m.db, m.lavalink)
 	group := NewScheduler(m.logger, handler, opts...)
 	interval := group.GetInterval()
 
-	// Generate scheduler key for this interval
-	schedulerKey := m.generateSchedulerKey(interval)
-
 	// Check if we can update an existing scheduler with capacity
-	if existingKey, existingGroup := m.findSchedulerWithCapacity(interval); existingGroup != nil {
-		logger := m.logger.With(slog.Group("scheduler", slog.Duration("interval", interval)), slog.String("key", existingKey))
+	if key, group := m.findSchedulerWithCapacity(interval); group != nil {
+		logger := m.logger.With(slog.Group("scheduler", slog.Duration("interval", interval)), slog.String("key", key))
 
 		logger.Debug("updating existing scheduler with capacity")
 
-		if err := existingGroup.UpdateOptions(opts...); err != nil {
+		if err := group.UpdateOptions(opts...); err != nil {
 			m.logger.Error("failed to update interval group options", slog.Any("error", err))
 			return fmt.Errorf("failed to update interval group %s: %w", interval, err)
 		}
@@ -97,10 +96,12 @@ func (m *manager) AddScheduler(opts ...Option[scheduler]) error {
 		return nil
 	}
 
-	m.intervalGroups[schedulerKey] = group
+	// Generate scheduler key for this interval
+	key := m.generateSchedulerKey()
+	m.intervalGroups[key] = group
 	go group.Start()
 
-	m.logger.Info("new interval group added", slog.Group("scheduler", slog.Duration("interval", interval)), slog.String("key", schedulerKey))
+	m.logger.Info("new interval group added", slog.Group("scheduler", slog.Duration("interval", interval)), slog.String("key", key))
 	return nil
 }
 
@@ -109,15 +110,13 @@ func (m *manager) AddGuild(guildID string, interval time.Duration) error {
 	defer m.mu.Unlock()
 
 	// Check if guild already exists and remove from old scheduler
-	if existingKey, existingGroup := m.findGuildInSchedulers(guildID); existingGroup != nil {
-		existingInterval := existingGroup.GetInterval()
-
-		if existingInterval == interval {
+	if key, group := m.findGuildInSchedulers(guildID); group != nil {
+		if group.GetInterval() == interval {
 			return nil // Guild already in correct interval
 		}
 
 		// Remove from existing group
-		if err := existingGroup.RemoveGuild(guildID); err != nil {
+		if err := group.RemoveGuild(guildID); err != nil {
 			m.logger.Error("failed to remove guild from existing interval group",
 				slog.String("guild.id", guildID),
 				slog.Any("error", err))
@@ -125,11 +124,11 @@ func (m *manager) AddGuild(guildID string, interval time.Duration) error {
 		}
 
 		// Clean up empty group
-		if len(existingGroup.GetGuilds()) == 0 {
-			if err := existingGroup.Stop(); err != nil {
+		if len(group.GetGuilds()) == 0 {
+			if err := group.Stop(); err != nil {
 				m.logger.Error("failed to stop empty interval group", slog.Any("error", err))
 			}
-			delete(m.intervalGroups, existingKey)
+			delete(m.intervalGroups, key)
 		}
 	}
 
@@ -156,7 +155,7 @@ func (m *manager) RemoveGuild(guildID string) error {
 	defer m.mu.Unlock()
 
 	// Find the scheduler containing this guild
-	schedulerKey, scheduler := m.findGuildInSchedulers(guildID)
+	key, scheduler := m.findGuildInSchedulers(guildID)
 	if scheduler == nil {
 		return fmt.Errorf("guild %s not found in scheduler", guildID)
 	}
@@ -173,7 +172,7 @@ func (m *manager) RemoveGuild(guildID string) error {
 		if err := scheduler.Stop(); err != nil {
 			m.logger.Error("failed to stop empty interval group", slog.Any("error", err))
 		}
-		delete(m.intervalGroups, schedulerKey)
+		delete(m.intervalGroups, key)
 	}
 
 	m.logger.Info("guild removed from scheduler", slog.String("guild.id", guildID))
@@ -196,29 +195,28 @@ func (m *manager) GetSchedulerForGuild(guildID string) (Scheduler, error) {
 // findOrCreateSchedulerWithCapacity finds an existing scheduler with capacity or creates a new one
 func (m *manager) findOrCreateSchedulerWithCapacity(interval time.Duration) (string, Scheduler) {
 	// First, try to find an existing scheduler with capacity for this interval
-	if schedulerKey, scheduler := m.findSchedulerWithCapacity(interval); scheduler != nil {
-		return schedulerKey, scheduler
+	if key, scheduler := m.findSchedulerWithCapacity(interval); scheduler != nil {
+		return key, scheduler
 	}
 
-	// If no existing scheduler has capacity, create a new one
-	schedulerKey := m.generateSchedulerKey(interval)
-
-	handler := NewHandler(m.session, m.store, m.lavalink)
+	handler := NewHandler(m.session, m.db, m.lavalink)
 	scheduler := NewScheduler(
 		m.logger,
 		handler,
 		WithInterval(interval),
 	)
 
-	m.intervalGroups[schedulerKey] = scheduler
+	// If no existing scheduler has capacity, create a new one
+	key := m.generateSchedulerKey()
+	m.intervalGroups[key] = scheduler
 	go scheduler.Start()
 
 	m.logger.Info("new scheduler created", slog.Group("scheduler",
-		slog.String("key", schedulerKey),
+		slog.String("key", key),
 		slog.Duration("interval", interval),
 	))
 
-	return schedulerKey, scheduler
+	return key, scheduler
 }
 
 // findSchedulerWithCapacity finds a scheduler with available capacity for the given interval
@@ -252,15 +250,6 @@ func (m *manager) findGuildInSchedulers(guildID string) (string, Scheduler) {
 }
 
 // generateSchedulerKey creates a unique key for schedulers
-func (m *manager) generateSchedulerKey(interval time.Duration) string {
-	counter := 0
-
-	// Keep incrementing until we find a unique key
-	for {
-		key := fmt.Sprintf("%v_%d", interval, counter)
-		if _, exists := m.intervalGroups[key]; !exists {
-			return key
-		}
-		counter++
-	}
+func (m *manager) generateSchedulerKey() string {
+	return snowflake.New(time.Now()).String()
 }

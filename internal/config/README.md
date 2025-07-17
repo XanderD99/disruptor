@@ -11,14 +11,21 @@
  - `CONFIG_LOGGING_SOURCE` (default: `false`) - 🗂️ Include short file paths in log messages for debugging
  - `CONFIG_METRICS_SHUTDOWN_DURATION` (default: `15s`) - ⏳ How long to wait before shutting down the metrics server
  - `CONFIG_METRICS_PORT` (default: `9090`) - 📊 Port where the metrics server will be available
- - `CONFIG_API_BASE_URL` (default: `http://localhost:1337/api`) - 🌐 The base URL for the Strapi API
- - `CONFIG_API_AUTH_SCHEME` (default: `Bearer`) - 🔐 Authentication scheme for the Strapi
- - `CONFIG_API_AUTH_TOKEN` - 🔑 Authentication token for accessing the Strapi API
- - `CONFIG_API_DEBUG` (default: `false`) - 🛠️ Enable debug logging for Strapi API requests
- - `CONFIG_API_RETRY_COUNT` (default: `3`) - 🔁 Number of retries for failed requests
- - `CONFIG_API_RETRY_WAIT_TIME` (default: `1s`) - ⏳ Time to wait between retries
- - `CONFIG_API_RETRY_MAX_WAIT_TIME` (default: `5s`) - ⏳ Maximum time to wait for retries
  - `CONFIG_LAVALINK_NODENAME` (default: `disruptor`) - 🏷️ Name of the Lavalink node (must be unique)
  - `CONFIG_LAVALINK_NODEADDRESS` (default: `localhost:2333`) - 🌐 Lavalink server address (e.g., localhost:2333)
  - `CONFIG_LAVALINK_NODEPASSWORD` - 🔑 Lavalink server password
  - `CONFIG_LAVALINK_NODESECURE` (default: `false`) - 🔒 Use secure connection (wss)
+ - `CONFIG_DATABASE_TYPE` (default: `mongo`) -
+ - `CONFIG_DATABASE_MONGO_HOSTS` (comma-separated, default: `localhost:27017`) -
+ - `CONFIG_DATABASE_MONGO_DATABASE` (default: `disruptor`) -
+ - `CONFIG_DATABASE_MONGO_AUTH_ENABLED` (default: `true`) -
+ - `CONFIG_DATABASE_MONGO_AUTH_USERNAME` -
+ - `CONFIG_DATABASE_MONGO_AUTH_PASSWORD` -
+ - `CONFIG_DATABASE_MONGO_AUTH_MECHANISM` (default: `SCRAM-SHA-256`) -
+ - `CONFIG_DATABASE_MONGO_AUTH_SOURCE` (default: `admin`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MIN_SIZE` (default: `10`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MAX_SIZE` (default: `100`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MAX_CONNECTING` (default: `10`) -
+ - `CONFIG_DATABASE_MONGO_POOL_MAX_IDLE_TIME` (default: `30m`) -
+ - `CONFIG_DATABASE_MONGO_TIMEOUT_CONNECT` (default: `10s`) -
+ - `CONFIG_DATABASE_MONGO_TIMEOUT_QUERY` (default: `30s`) -

@@ -7,7 +7,7 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   goimports:
-    local-prefixes: github.com/XanderD99/discord-disruptor
+    local-prefixes: github.com/XanderD99/disruptor
   revive:
     severity: warning
 

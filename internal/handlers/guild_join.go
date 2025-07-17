@@ -3,28 +3,33 @@ package handlers
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/disgoorg/disgo/events"
 
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
-func GuildJoin(l *slog.Logger, s store.Store, m scheduler.Manager) func(*events.GuildJoin) {
-	settings := store.DefaultGuildSettings()
+func GuildJoin(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events.GuildJoin) {
 
 	return func(gj *events.GuildJoin) {
-		l = l.With(
-			slog.Group("guild", slog.String("id", gj.Guild.ID.String())),
-		)
+		l = l.With(slog.Group("guild", slog.String("id", gj.Guild.ID.String())))
 
-		ctx := context.Background()
-		guild, err := s.Guilds().Create(ctx, store.Guild{ID: gj.Guild.ID.String(), Settings: settings})
-		if err != nil {
+		l.Info("Joined guild")
+
+		guild := models.NewGuild(gj.Guild.ID)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := db.Create(ctx, d, guild); err != nil {
 			l.Error("Failed to create guild in store", slog.Any("error", err))
+			return
 		}
 
-		if err := m.AddGuild(guild.ID, settings.Interval); err != nil {
+		if err := m.AddGuild(guild.ID.String(), guild.Interval); err != nil {
 			l.Error("Failed to add guild to voice audio scheduler manager", slog.Any("error", err))
 		}
 	}

@@ -3,23 +3,25 @@ package commands
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/store"
-	"github.com/XanderD99/discord-disruptor/pkg/util"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type chance struct {
-	store store.Store
+	db db.Database
 }
 
-func Chance(store store.Store) disruptor.Command {
+func Chance(db db.Database) disruptor.Command {
 	return chance{
-		store: store,
+		db: db,
 	}
 }
 
@@ -47,9 +49,15 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	guild, err := c.store.Guilds().FindByID(ctx, event.GuildID().String())
+	guildID := event.GuildID()
+	if guildID == nil {
+		return fmt.Errorf("this command can only be used in a guild")
+	}
+
+	guild, err := db.FindOne[models.Guild](ctx, c.db, db.WithIDFilter(models.Guild{ID: *guildID}))
 	if err != nil {
-		return fmt.Errorf("failed to find guild: %w", err)
+		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
+		guild = *models.NewGuild(*guildID)
 	}
 
 	percentage, ok := d.OptInt("percentage")
@@ -57,7 +65,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		embed := discord.NewEmbedBuilder()
 		embed.SetColor(util.RGBToInteger(255, 215, 0))
 
-		embed.SetDescription(fmt.Sprintf("Current chance percentage: %d%%", int(guild.Settings.Chance*100)))
+		embed.SetDescription(fmt.Sprintf("Current chance percentage: %s", guild.Chance))
 
 		msg := discord.NewMessageUpdateBuilder().SetEmbeds((embed).Build()).Build()
 
@@ -68,23 +76,13 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return nil
 	}
 
-	if (percentage / 100) == int(guild.Settings.Chance) {
-		embed := discord.NewEmbedBuilder()
-		embed.SetColor(util.RGBToInteger(255, 215, 0))
-		embed.SetDescription(fmt.Sprintf("Chance is already set to: %d%%", percentage))
-		msg := discord.NewMessageUpdateBuilder().SetEmbeds(embed.Build()).Build()
-		if _, err := event.UpdateInteractionResponse(msg); err != nil {
-			return fmt.Errorf("failed to update interaction response: %w", err)
-		}
-		return nil
-	}
-
 	if percentage < 0 || percentage > 100 {
 		return fmt.Errorf("percentage must be between 0 and 100")
 	}
 
-	guild.Settings.Chance = float64(percentage / 100)
-	if err := c.store.Guilds().Update(ctx, guild.ID, guild); err != nil {
+	guild.Chance = models.Chance(percentage)
+
+	if err := db.Upsert(ctx, c.db, guild); err != nil {
 		return fmt.Errorf("failed to update guild chance: %w", err)
 	}
 
@@ -99,4 +97,4 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 	return nil
 }
 
-var _ disruptor.Command = (*play)(nil)
+var _ disruptor.Command = (*chance)(nil)

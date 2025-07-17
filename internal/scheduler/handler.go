@@ -11,10 +11,11 @@ import (
 	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/snowflake/v2"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/store"
-	"github.com/XanderD99/discord-disruptor/pkg/util"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type Handler interface {
@@ -23,7 +24,7 @@ type Handler interface {
 
 type handler struct {
 	session  *disruptor.Session
-	store    store.Store
+	db       db.Database
 	lavalink lavalink.Lavalink // Assuming lavalink is an interface defined in your project
 
 	workerPool chan struct{} // Semaphore for controlling concurrent workers
@@ -31,10 +32,10 @@ type handler struct {
 
 var maxWorkers = 10 // Maximum number of concurrent workers
 
-func NewHandler(session *disruptor.Session, store store.Store, lavalink lavalink.Lavalink) Handler {
+func NewHandler(session *disruptor.Session, db db.Database, lavalink lavalink.Lavalink) Handler {
 	return handler{
 		session:    session,
-		store:      store,
+		db:         db,
 		lavalink:   lavalink,
 		workerPool: make(chan struct{}, maxWorkers),
 	}
@@ -51,11 +52,11 @@ func (h handler) handle(ctx context.Context, interval time.Duration) error {
 	return h.processGuildsWithPool(ctx, guilds)
 }
 
-func (h handler) processGuildsWithPool(ctx context.Context, guilds []store.Guild) error {
+func (h handler) processGuildsWithPool(ctx context.Context, guilds []models.Guild) error {
 	var wg sync.WaitGroup
 	errChan := make(chan error, len(guilds))
 
-	process := func(g store.Guild) {
+	process := func(g models.Guild) {
 		defer func() {
 			<-h.workerPool // Release worker
 			wg.Done()
@@ -96,16 +97,16 @@ func (h handler) processGuildsWithPool(ctx context.Context, guilds []store.Guild
 	return nil // Don't fail the entire batch for individual guild failures
 }
 
-func (h handler) processGuild(ctx context.Context, guild store.Guild) error {
-	guildID := snowflake.MustParse(guild.ID)
+func (h handler) processGuild(ctx context.Context, guild models.Guild) error {
+	// guildID := snowflake.MustParse(guild.ID)
 
-	if _, ok := h.session.Caches().Guild(guildID); !ok {
+	if _, ok := h.session.Caches().Guild(guild.ID); !ok {
 		h.session.Logger().Warn("Guild not found in cache, skipping", "guild_id", guild.ID)
 		return nil // Skip if guild is not in cache
 	}
 
 	// Get available voice channels
-	channels, err := h.getAvailableVoiceChannels(ctx, guildID)
+	channels, err := h.getAvailableVoiceChannels(ctx, guild.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get channels for guild %s: %w", guild.ID, err)
 	}
@@ -118,7 +119,7 @@ func (h handler) processGuild(ctx context.Context, guild store.Guild) error {
 	channel := channels[util.RandomInt(0, len(channels)-1)]
 
 	channelID := channel.ID()
-	if err := h.session.UpdateVoiceState(ctx, guildID, &channelID, false, true); err != nil {
+	if err := h.session.UpdateVoiceState(ctx, guild.ID, &channelID, false, true); err != nil {
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 
@@ -161,27 +162,30 @@ func (h handler) getAvailableVoiceChannels(ctx context.Context, guildID snowflak
 	return filtered, nil
 }
 
-func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) ([]store.Guild, error) {
-	chance := util.RandomFloat(0, 1) // Use float for better precision
+func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) ([]models.Guild, error) {
+	chance := util.RandomFloat(0, 100) // Use float for better precision
 
 	logger := h.session.Logger().With(
 		slog.Duration("interval", interval),
 		slog.Float64("chance", chance),
 	)
 
-	f := store.NewFilter(
-		store.WithCondition("settings.interval", store.OpEqual, int(interval.Minutes())), // Convert seconds to minutes
-		store.WithCondition("settings.joinChance", store.OpGreaterThanEqual, chance),
-	)
+	filter := map[string]any{
+		"interval": int64(interval),
+		"chance": map[string]any{
+			"$gte": chance,
+		},
+	}
 
-	guilds, count, err := h.store.Guilds().Find(ctx, store.WithFilter(&f))
+	guilds, err := db.Find[models.Guild](ctx, h.db, db.WithFilters(filter))
 	if err != nil {
 		return nil, fmt.Errorf("failed to find guilds: %w", err)
 	}
 
+	count := len(guilds)
 	if count == 0 {
-		logger.Info("No eligible guilds found for the given interval and chance")
-		return nil, nil // No eligible guilds found
+		logger.Info("No eligible guilds found for processing")
+		return nil, nil // No eligible guilds
 	}
 
 	h.session.Logger().Info("Fetched all eligible guilds", slog.Int("count", count))

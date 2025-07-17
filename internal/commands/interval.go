@@ -3,27 +3,29 @@ package commands
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/internal/store"
-	"github.com/XanderD99/discord-disruptor/pkg/util"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type interval struct {
 	manager scheduler.Manager
-	store   store.Store
+	db      db.Database
 }
 
-func Interval(store store.Store, manager scheduler.Manager) disruptor.Command {
+func Interval(db db.Database, manager scheduler.Manager) disruptor.Command {
 	return interval{
 		manager: manager,
-		store:   store,
+		db:      db,
 	}
 }
 
@@ -51,17 +53,24 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	guild, err := i.store.Guilds().FindByID(ctx, event.GuildID().String())
+	guildID := event.GuildID()
+	if guildID == nil {
+		return fmt.Errorf("this command can only be used in a guild")
+	}
+
+	guild, err := db.FindOne[models.Guild](ctx, i.db, db.WithIDFilter(models.Guild{ID: *guildID}))
 	if err != nil {
-		return fmt.Errorf("failed to find guild: %w", err)
+		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
+		guild = *models.NewGuild(*guildID)
 	}
 
 	intervalString, ok := d.OptString("duration")
 	if !ok {
+
 		embed := discord.NewEmbedBuilder()
 		embed.SetColor(util.RGBToInteger(255, 215, 0))
 
-		embed.SetDescription(fmt.Sprintf("Current interval: %s", guild.Settings.Interval))
+		embed.SetDescription(fmt.Sprintf("Current interval: %s", guild.Interval))
 
 		msg := discord.NewMessageUpdateBuilder().SetEmbeds((embed).Build()).Build()
 
@@ -72,29 +81,30 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return nil
 	}
 
-	guild.Settings.Interval, err = time.ParseDuration(intervalString)
+	guild.Interval, err = time.ParseDuration(intervalString)
 	if err != nil {
 		return fmt.Errorf("failed to parse duration: %w", err)
 	}
 
-	if guild.Settings.Interval < (time.Minute * 10) {
+	if guild.Interval < (time.Minute * 10) {
 		return fmt.Errorf("invalid duration: %s, must be greater or equal than 10m", intervalString)
 	}
 
-	if guild.Settings.Interval > (time.Hour * 24) {
+	if guild.Interval > (time.Hour * 24) {
 		return fmt.Errorf("invalid duration: %s, must be less than 24h", intervalString)
 	}
 
-	if err := i.store.Guilds().Update(ctx, guild.ID, guild); err != nil {
+	if err := db.Upsert(ctx, i.db, guild); err != nil {
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
-	if err := i.manager.AddGuild(guild.ID, guild.Settings.Interval); err != nil {
+
+	if err := i.manager.AddGuild(guildID.String(), guild.Interval); err != nil {
 		return fmt.Errorf("failed to add guild to manager: %w", err)
 	}
 
 	embed := discord.NewEmbedBuilder()
 	embed.SetColor(util.RGBToInteger(255, 215, 0))
-	embed.SetDescription(fmt.Sprintf("Interval set to: %s", guild.Settings.Interval))
+	embed.SetDescription(fmt.Sprintf("Interval set to: %s", guild.Interval))
 	msg := discord.NewMessageUpdateBuilder().SetEmbeds(embed.Build()).Build()
 	if _, err := event.UpdateInteractionResponse(msg); err != nil {
 		return fmt.Errorf("failed to update interaction response: %w", err)

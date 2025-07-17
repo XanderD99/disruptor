@@ -8,7 +8,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/XanderD99/discord-disruptor/internal/http"
+	"github.com/XanderD99/disruptor/internal/http"
 )
 
 const (
