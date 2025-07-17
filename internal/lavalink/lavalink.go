@@ -9,7 +9,7 @@ import (
 	disgolavalink "github.com/disgoorg/disgolink/v3/lavalink"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/disruptor"
 )
 
 type Node struct {

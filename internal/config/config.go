@@ -1,10 +1,10 @@
 package config
 
 import (
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/metrics"
-	"github.com/XanderD99/discord-disruptor/pkg/database/mongo"
-	"github.com/XanderD99/discord-disruptor/pkg/logging"
+	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/metrics"
+	"github.com/XanderD99/disruptor/pkg/database/mongo"
+	"github.com/XanderD99/disruptor/pkg/logging"
 
 	"github.com/caarlos0/env/v11"
 )

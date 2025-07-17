@@ -6,9 +6,9 @@ import (
 
 	"github.com/disgoorg/disgo/events"
 
-	"github.com/XanderD99/discord-disruptor/internal/models"
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/database"
 )
 
 func GuildLeave(l *slog.Logger, s database.Database, m scheduler.Manager) func(*events.GuildLeave) {

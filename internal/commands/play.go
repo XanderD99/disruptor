@@ -8,8 +8,8 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/lavalink"
 )
 
 type play struct {

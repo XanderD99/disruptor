@@ -11,11 +11,11 @@ import (
 	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/snowflake/v2"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/models"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
-	"github.com/XanderD99/discord-disruptor/pkg/util"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type Handler interface {
@@ -171,8 +171,8 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 	)
 
 	filter := map[string]any{
-		"settings.interval": int(interval.Minutes()), // Convert seconds to minutes
-		"settings.joinChance": map[string]any{
+		"interval": interval, // Convert seconds to minutes
+		"chance": map[string]any{
 			"$lt": chance,
 		},
 	}

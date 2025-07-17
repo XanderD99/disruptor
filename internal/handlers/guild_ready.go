@@ -8,9 +8,9 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
 
-	"github.com/XanderD99/discord-disruptor/internal/models"
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/database"
 )
 
 type guildReadyTaskBuilder struct {
@@ -50,7 +50,7 @@ func (t guildReadyTask) Execute(ctx context.Context) error {
 	}
 
 	// Add guild to voice audio scheduler manager
-	if err := t.manager.AddGuild(guild.ID.String(), guild.Settings.Interval); err != nil {
+	if err := t.manager.AddGuild(guild.ID.String(), guild.Interval); err != nil {
 		return fmt.Errorf("failed to add guild %s to voice audio scheduler manager: %w", t.guildID, err)
 	}
 

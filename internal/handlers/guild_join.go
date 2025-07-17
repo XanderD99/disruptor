@@ -6,9 +6,9 @@ import (
 
 	"github.com/disgoorg/disgo/events"
 
-	"github.com/XanderD99/discord-disruptor/internal/models"
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/database"
 )
 
 func GuildJoin(l *slog.Logger, s database.Database, m scheduler.Manager) func(*events.GuildJoin) {
@@ -25,7 +25,7 @@ func GuildJoin(l *slog.Logger, s database.Database, m scheduler.Manager) func(*e
 			return
 		}
 
-		if err := m.AddGuild(guild.ID.String(), guild.Settings.Interval); err != nil {
+		if err := m.AddGuild(guild.ID.String(), guild.Interval); err != nil {
 			l.Error("Failed to add guild to voice audio scheduler manager", slog.Any("error", err))
 		}
 	}

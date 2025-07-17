@@ -59,7 +59,7 @@
   },
 
   // Import organization
-  "go.goimportsLocalPrefix": "github.com/XanderD99/discord-disruptor",
+  "go.goimportsLocalPrefix": "github.com/XanderD99/disruptor",
   "go.removeTags": {
     "tags": "",
     "options": "",

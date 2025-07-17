@@ -1,4 +1,4 @@
-module github.com/XanderD99/discord-disruptor
+module github.com/XanderD99/disruptor
 
 go 1.24.2
 

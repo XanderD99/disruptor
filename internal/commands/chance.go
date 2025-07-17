@@ -9,10 +9,10 @@ import (
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
 
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/models"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
-	"github.com/XanderD99/discord-disruptor/pkg/util"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type chance struct {
@@ -74,7 +74,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		embed := discord.NewEmbedBuilder()
 		embed.SetColor(util.RGBToInteger(255, 215, 0))
 
-		embed.SetDescription(fmt.Sprintf("Current chance percentage: %s", guild.Settings.Chance))
+		embed.SetDescription(fmt.Sprintf("Current chance percentage: %s", guild.Chance))
 
 		msg := discord.NewMessageUpdateBuilder().SetEmbeds((embed).Build()).Build()
 
@@ -89,7 +89,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("percentage must be between 0 and 100")
 	}
 
-	guild.Settings.Chance = models.Chance(percentage)
+	guild.Chance = models.Chance(percentage)
 
 	if err := c.store.Upsert(ctx, guild); err != nil {
 		return fmt.Errorf("failed to update guild chance: %w", err)

@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/net/context"
 
-	"github.com/XanderD99/discord-disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/database"
 )
 
 var _ database.Database = (*MongoDB)(nil)

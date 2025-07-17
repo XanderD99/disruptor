@@ -11,17 +11,17 @@ import (
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/sharding"
 
-	"github.com/XanderD99/discord-disruptor/internal/commands"
-	"github.com/XanderD99/discord-disruptor/internal/config"
-	"github.com/XanderD99/discord-disruptor/internal/disruptor"
-	"github.com/XanderD99/discord-disruptor/internal/handlers"
-	"github.com/XanderD99/discord-disruptor/internal/lavalink"
-	"github.com/XanderD99/discord-disruptor/internal/metrics"
-	"github.com/XanderD99/discord-disruptor/internal/scheduler"
-	"github.com/XanderD99/discord-disruptor/pkg/database"
-	"github.com/XanderD99/discord-disruptor/pkg/database/mongo"
-	"github.com/XanderD99/discord-disruptor/pkg/logging"
-	"github.com/XanderD99/discord-disruptor/pkg/processes"
+	"github.com/XanderD99/disruptor/internal/commands"
+	"github.com/XanderD99/disruptor/internal/config"
+	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/handlers"
+	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/metrics"
+	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/database"
+	"github.com/XanderD99/disruptor/pkg/database/mongo"
+	"github.com/XanderD99/disruptor/pkg/logging"
+	"github.com/XanderD99/disruptor/pkg/processes"
 )
 
 func main() {
@@ -119,7 +119,6 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database datab
 		commands.Next(manager),
 		commands.Interval(database, manager),
 		commands.Chance(database),
-		commands.SoundBoard(database),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error adding commands: %w", err)
@@ -133,8 +132,6 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database datab
 		bot.NewListenerFunc(handlers.GuildLeave(logger, database, manager)),
 
 		bot.NewListenerFunc(handlers.GuildReady(logger, database, manager)),
-		bot.NewListenerFunc(handlers.GuildSoundBoardSoundDelete(logger, database)),
-		bot.NewListenerFunc(handlers.GuildSoundBoardSoundUpdate(logger, database)),
 	)
 
 	return group, nil
