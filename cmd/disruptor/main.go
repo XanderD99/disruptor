@@ -19,6 +19,8 @@ import (
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/db/file"
+	"github.com/XanderD99/disruptor/pkg/db/memory"
 	"github.com/XanderD99/disruptor/pkg/db/mongo"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
@@ -79,6 +81,14 @@ func initDatabase(cfg config.Config) (*processes.ProcessGroup, db.Database, erro
 	group := processes.NewGroup("database", time.Second*5)
 
 	switch cfg.Database.Type {
+	case "memory":
+		db := memory.New()
+		group.AddProcessWithCtx("memory-db", db.Connect, false, db.Disconnect)
+		return group, db, nil
+	case "file":
+		db := file.New(cfg.Database.File)
+		group.AddProcessWithCtx("file-db", db.Connect, false, db.Disconnect)
+		return group, db, nil
 	case "mongo":
 		db := mongo.New(cfg.Database.Mongo)
 		group.AddProcessWithCtx("mongo", db.Connect, false, db.Disconnect)

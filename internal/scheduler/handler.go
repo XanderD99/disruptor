@@ -163,7 +163,7 @@ func (h handler) getAvailableVoiceChannels(ctx context.Context, guildID snowflak
 }
 
 func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) ([]models.Guild, error) {
-	chance := util.RandomFloat(0, 1) // Use float for better precision
+	chance := util.RandomFloat(0, 100) // Use float for better precision
 
 	logger := h.session.Logger().With(
 		slog.Duration("interval", interval),
@@ -173,7 +173,7 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 	filter := map[string]any{
 		"interval": interval, // Convert seconds to minutes
 		"chance": map[string]any{
-			"$lt": chance,
+			"$lte": chance,
 		},
 	}
 

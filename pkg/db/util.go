@@ -70,7 +70,7 @@ func getEntityIDCached(entity any) (any, error) {
 		if !info.hasIDField {
 			return nil, fmt.Errorf("ID field not found")
 		}
-		return v.Field(info.idFieldIndex), nil
+		return v.Field(info.idFieldIndex).Interface(), nil
 	}
 
 	// Build cache
@@ -89,5 +89,5 @@ func getEntityIDCached(entity any) (any, error) {
 		return nil, fmt.Errorf("ID field not found")
 	}
 
-	return v.Field(info.idFieldIndex), nil
+	return v.Field(info.idFieldIndex).Interface(), nil
 }

@@ -59,6 +59,15 @@ func WithFilters(filters map[string]any) FindOption {
 	}
 }
 
+func WithFilter(field string, value any) FindOption {
+	return func(opts *FindOptions) {
+		if opts.Filters == nil {
+			opts.Filters = make(map[string]any)
+		}
+		opts.Filters[field] = value
+	}
+}
+
 func WithSort(field string, direction SortDirection) FindOption {
 	return func(opts *FindOptions) {
 		if opts.Sort == nil {
