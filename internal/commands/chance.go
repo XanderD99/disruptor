@@ -53,11 +53,11 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 	if guildID == nil {
 		return fmt.Errorf("this command can only be used in a guild")
 	}
-
-	guild, err := db.FindOne[models.Guild](ctx, c.db, db.WithIDFilter(models.Guild{ID: *guildID}))
+	var guild models.Guild
+	err := c.db.FindByID(ctx, *guildID, &guild)
 	if err != nil {
 		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
-		guild = *models.NewGuild(*guildID)
+		guild = models.NewGuild(*guildID)
 	}
 
 	percentage, ok := d.OptInt("percentage")
@@ -82,7 +82,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 
 	guild.Chance = models.Chance(percentage)
 
-	if err := db.Upsert(ctx, c.db, guild); err != nil {
+	if err := c.db.Upsert(ctx, guild); err != nil {
 		return fmt.Errorf("failed to update guild chance: %w", err)
 	}
 

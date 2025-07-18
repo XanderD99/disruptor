@@ -11,25 +11,28 @@ type Database interface {
 	Disconnect() error
 
 	// Create inserts a new document
-	Create(ctx context.Context, table string, entity any) error
+	Create(ctx context.Context, result any) error
 
 	// FindOne retrieves a single document
-	FindOne(ctx context.Context, table string, result any, opts ...FindOption) error
+	FindOne(ctx context.Context, result any, opts ...FindOption) error
+
+	// FindByID retrieves a document by its ID
+	FindByID(ctx context.Context, id any, result any) error
 
 	// Find retrieves documents with optional filters
-	Find(ctx context.Context, table string, result any, opts ...FindOption) error
+	Find(ctx context.Context, results any, opts ...FindOption) error
 
 	// Update updates an existing document
-	Update(ctx context.Context, table string, entity any) error
+	Update(ctx context.Context, entity any) error
 
 	// Upsert creates or updates a document
-	Upsert(ctx context.Context, table string, entity any) error
+	Upsert(ctx context.Context, entity any) error
 
 	// Delete removes a document by ID
-	Delete(ctx context.Context, table string, id any) error
+	Delete(ctx context.Context, id any) error
 
 	// Count returns the number of documents matching the filters
-	Count(ctx context.Context, table string, opts ...FindOption) (int64, error)
+	Count(ctx context.Context, entity any, opts ...FindOption) (int64, error)
 }
 
 type Option[T any] func(*T)
@@ -59,20 +62,6 @@ type Sort map[string]SortDirection
 func WithFilters(filters map[string]any) FindOption {
 	return func(opts *FindOptions) {
 		opts.Filters = filters
-	}
-}
-
-func WithIDFilter[T any](entity T) FindOption {
-	id, err := GetEntityID(entity)
-	if err != nil {
-		return func(opts *FindOptions) {}
-	}
-
-	return func(opts *FindOptions) {
-		if opts.Filters == nil {
-			opts.Filters = make(map[string]any)
-		}
-		opts.Filters["id"] = id
 	}
 }
 

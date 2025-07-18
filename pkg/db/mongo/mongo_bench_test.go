@@ -71,7 +71,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 				Email: fmt.Sprintf("user%d@example.com", i),
 				Age:   20 + (i % 50),
 			}
-			if err := database.Create(ctx, "bench_users", user); err != nil {
+			if err := database.Create(ctx, user); err != nil {
 				b.Errorf("Create failed: %v", err)
 			}
 		}
@@ -86,7 +86,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 			Age:    20 + (i % 50),
 			Active: i%2 == 0,
 		}
-		database.Create(ctx, "read_bench_users", user)
+		database.Create(ctx, user)
 	}
 
 	b.Run("FindByID", func(b *testing.B) {
@@ -94,7 +94,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			id := fmt.Sprintf("read_bench_user_%d", i%1000)
 			var result any
-			err := database.FindOne(ctx, "read_bench_users", &result, db.WithIDFilter(TestUser{ID: id}))
+			err := database.FindByID(ctx, id, &result)
 			if err != nil {
 				b.Errorf("FindByID failed: %v", err)
 			}
@@ -105,7 +105,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			var results []any
-			err := database.Find(ctx, "read_bench_users", &results, db.WithLimit(10))
+			err := database.Find(ctx, &results, db.WithLimit(10))
 			if err != nil {
 				b.Errorf("FindAll failed: %v", err)
 			}
@@ -116,7 +116,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			var results []any
-			err := database.Find(ctx, "read_bench_users",
+			err := database.Find(ctx,
 				&results,
 				db.WithFilter("active", true),
 				db.WithLimit(10),
@@ -137,7 +137,7 @@ func BenchmarkMongoDB_Operations(b *testing.B) {
 				Email: fmt.Sprintf("updated%d@example.com", i),
 				Age:   30 + (i % 40),
 			}
-			if err := database.Update(ctx, "read_bench_users", user); err != nil {
+			if err := database.Update(ctx, user); err != nil {
 				// Some updates might fail if the record doesn't exist, which is expected
 				continue
 			}
@@ -219,7 +219,7 @@ func BenchmarkMongoDB_ConcurrentOperations(b *testing.B) {
 					Email: fmt.Sprintf("concurrent%d@example.com", i),
 					Age:   20 + (i % 50),
 				}
-				if err := database.Create(ctx, "concurrent_users", user); err != nil {
+				if err := database.Create(ctx, user); err != nil {
 					b.Errorf("Concurrent create failed: %v", err)
 				}
 				i++
@@ -235,7 +235,7 @@ func BenchmarkMongoDB_ConcurrentOperations(b *testing.B) {
 			Email: fmt.Sprintf("concurrentread%d@example.com", i),
 			Age:   20 + (i % 50),
 		}
-		database.Create(ctx, "concurrent_read_users", user)
+		database.Create(ctx, user)
 	}
 
 	b.Run("ConcurrentRead", func(b *testing.B) {
@@ -245,7 +245,7 @@ func BenchmarkMongoDB_ConcurrentOperations(b *testing.B) {
 			for pb.Next() {
 				id := fmt.Sprintf("concurrent_read_user_%d", i%500)
 				var result any
-				err := database.FindOne(ctx, "concurrent_read_users", &result, db.WithIDFilter(TestUser{ID: id}))
+				err := database.FindByID(ctx, id, &result)
 				if err != nil {
 					b.Errorf("Concurrent read failed: %v", err)
 				}

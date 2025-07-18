@@ -7,8 +7,8 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
-func NewGuild(snowflake snowflake.ID) *Guild {
-	return &Guild{
+func NewGuild(snowflake snowflake.ID) Guild {
+	return Guild{
 		ID:       snowflake,
 		Interval: time.Hour,
 		Chance:   40,
