@@ -46,25 +46,6 @@ body:
       required: false
 
   - type: dropdown
-    id: component
-    attributes:
-      label: 🧩 Component
-      description: Which component would this feature affect?
-      options:
-        - Audio/Voice
-        - Lavalink Integration
-        - Discord API
-        - Scheduler
-        - Configuration
-        - Database/Store
-        - Metrics
-        - CLI/Commands
-        - Documentation
-        - Other
-    validations:
-      required: true
-
-  - type: dropdown
     id: priority
     attributes:
       label: 📊 Priority
@@ -77,18 +58,6 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
-    id: impact
-    attributes:
-      label: 📈 Impact
-      description: Who would benefit from this feature?
-      options:
-        - label: End users (Discord users)
-        - label: Bot administrators
-        - label: Developers/Contributors
-        - label: Server performance
-        - label: Monitoring/Observability
-
   - type: textarea
     id: examples
     attributes:
@@ -98,15 +67,6 @@ body:
         Example scenarios where this feature would be useful:
         1. ...
         2. ...
-    validations:
-      required: false
-
-  - type: textarea
-    id: mockups
-    attributes:
-      label: 🎨 Mockups/Wireframes
-      description: If applicable, add mockups or wireframes
-      placeholder: Links to images, sketches, or design ideas
     validations:
       required: false
 
