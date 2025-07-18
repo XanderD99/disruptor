@@ -176,9 +176,8 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 			"$gte": chance,
 		},
 	}
-
-	guilds, err := db.Find[models.Guild](ctx, h.db, db.WithFilters(filter))
-	if err != nil {
+	guilds := make([]models.Guild, 0)
+	if err := h.db.Find(ctx, &guilds, db.WithFilters(filter)); err != nil {
 		return nil, fmt.Errorf("failed to find guilds: %w", err)
 	}
 

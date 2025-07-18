@@ -24,7 +24,7 @@ func GuildJoin(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events.
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := db.Create(ctx, d, guild); err != nil {
+		if err := d.Create(ctx, guild); err != nil {
 			l.Error("Failed to create guild in store", slog.Any("error", err))
 			return
 		}

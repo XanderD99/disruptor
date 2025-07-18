@@ -22,8 +22,9 @@ func GuildLeave(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := db.Delete(ctx, d, models.Guild{ID: gr.GuildID}); err != nil {
-			l.Error("Failed to delete guild from store", slog.Any("error", err))
+		if err := d.FindOne(ctx, &models.Guild{ID: gr.Guild.ID}); err != nil {
+			l.Error("Failed to find guild in store", slog.Any("error", err))
+			return
 		}
 
 		if err := m.RemoveGuild(gr.Guild.ID.String()); err != nil {

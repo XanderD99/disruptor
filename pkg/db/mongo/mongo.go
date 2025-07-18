@@ -107,13 +107,16 @@ func (m *MongoDB) Disconnect() error {
 	return m.client.Disconnect(ctx)
 }
 
-func (m *MongoDB) Create(ctx context.Context, table string, entity any) error {
+func (m *MongoDB) Create(ctx context.Context, entity any) error {
+	table := db.GetTableName(entity)
+
 	collection := m.database.Collection(table)
 	_, err := collection.InsertOne(ctx, entity)
 	return err
 }
 
-func (m *MongoDB) FindOne(ctx context.Context, table string, result any, opts ...db.FindOption) error {
+func (m *MongoDB) FindOne(ctx context.Context, result any, opts ...db.FindOption) error {
+	table := db.GetTableName(result)
 	collection := m.database.Collection(table)
 	options := &db.FindOptions{}
 	for _, opt := range opts {
@@ -125,7 +128,20 @@ func (m *MongoDB) FindOne(ctx context.Context, table string, result any, opts ..
 	return collection.FindOne(ctx, options.Filters, findOpts).Decode(result)
 }
 
-func (m *MongoDB) Find(ctx context.Context, table string, results any, opts ...db.FindOption) error {
+func (m *MongoDB) FindByID(ctx context.Context, id any, result any) error {
+	table := db.GetTableName(result)
+	collection := m.database.Collection(table)
+
+	key, _, err := db.GetEntityBSONID(result)
+	if err != nil {
+		return err
+	}
+
+	return collection.FindOne(ctx, bson.M{key: id}).Decode(result)
+}
+
+func (m *MongoDB) Find(ctx context.Context, results any, opts ...db.FindOption) error {
+	table := db.GetTableName(results)
 	collection := m.database.Collection(table)
 
 	options := &db.FindOptions{}
@@ -148,10 +164,12 @@ func (m *MongoDB) Find(ctx context.Context, table string, results any, opts ...d
 	return nil
 }
 
-func (m *MongoDB) Update(ctx context.Context, table string, entity any) error {
+func (m *MongoDB) Update(ctx context.Context, entity any) error {
+	table := db.GetTableName(entity)
+
 	collection := m.database.Collection(table)
 
-	id, err := db.GetEntityID(entity)
+	key, id, err := db.GetEntityBSONID(entity)
 	if err != nil {
 		return err
 	}
@@ -163,7 +181,7 @@ func (m *MongoDB) Update(ctx context.Context, table string, entity any) error {
 
 	result, err := collection.UpdateOne(
 		ctx,
-		bson.M{"id": id},
+		bson.M{key: id},
 		bson.M{"$set": updateDoc},
 	)
 	if err != nil {
@@ -177,10 +195,12 @@ func (m *MongoDB) Update(ctx context.Context, table string, entity any) error {
 	return nil
 }
 
-func (m *MongoDB) Upsert(ctx context.Context, table string, entity any) error {
+func (m *MongoDB) Upsert(ctx context.Context, entity any) error {
+	table := db.GetTableName(entity)
+
 	collection := m.database.Collection(table)
 
-	id, err := db.GetEntityID(entity)
+	key, id, err := db.GetEntityBSONID(entity)
 	if err != nil {
 		return err
 	}
@@ -193,7 +213,7 @@ func (m *MongoDB) Upsert(ctx context.Context, table string, entity any) error {
 	opts := options.Update().SetUpsert(true)
 	_, err = collection.UpdateOne(
 		ctx,
-		bson.M{"id": id},
+		bson.M{key: id},
 		bson.M{"$set": updateDoc},
 		opts,
 	)
@@ -201,16 +221,25 @@ func (m *MongoDB) Upsert(ctx context.Context, table string, entity any) error {
 	return err
 }
 
-func (m *MongoDB) Delete(ctx context.Context, table string, id any) error {
+func (m *MongoDB) Delete(ctx context.Context, entity any) error {
+	table := db.GetTableName(entity)
+
 	collection := m.database.Collection(table)
 
+	key, id, err := db.GetEntityBSONID(entity)
+	if err != nil {
+		return err
+	}
+
 	// Try string ID first, then numeric
-	_, err := collection.DeleteOne(ctx, bson.M{"id": id})
+	_, err = collection.DeleteOne(ctx, bson.M{key: id})
 
 	return err
 }
 
-func (m *MongoDB) Count(ctx context.Context, table string, opts ...db.FindOption) (int64, error) {
+func (m *MongoDB) Count(ctx context.Context, entity any, opts ...db.FindOption) (int64, error) {
+	table := db.GetTableName(entity)
+
 	collection := m.database.Collection(table)
 
 	options := &db.FindOptions{}

@@ -58,10 +58,10 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	guild, err := db.FindOne[models.Guild](ctx, i.db, db.WithIDFilter(models.Guild{ID: *guildID}))
-	if err != nil {
+	var guild models.Guild
+	if err := i.db.FindByID(ctx, *guildID, &guild); err != nil {
 		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
-		guild = *models.NewGuild(*guildID)
+		guild = models.NewGuild(*guildID)
 	}
 
 	intervalString, ok := d.OptString("duration")
@@ -81,6 +81,7 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return nil
 	}
 
+	var err error
 	guild.Interval, err = time.ParseDuration(intervalString)
 	if err != nil {
 		return fmt.Errorf("failed to parse duration: %w", err)
@@ -94,7 +95,7 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("invalid duration: %s, must be less than 24h", intervalString)
 	}
 
-	if err := db.Upsert(ctx, i.db, guild); err != nil {
+	if err := i.db.Upsert(ctx, guild); err != nil {
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
 
