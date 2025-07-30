@@ -50,7 +50,7 @@ func (i interval) Options() discord.SlashCommandCreate {
 }
 
 func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(event.Ctx)
 	defer cancel()
 
 	guildID := event.GuildID()

@@ -46,7 +46,7 @@ func (c chance) Options() discord.SlashCommandCreate {
 }
 
 func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(event.Ctx)
 	defer cancel()
 
 	guildID := event.GuildID()
@@ -54,7 +54,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 	var guild models.Guild
-	err := c.db.FindByID(ctx, *guildID, &guild)
+	err := c.db.FindByID(event.Ctx, *guildID, &guild)
 	if err != nil {
 		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
 		guild = models.NewGuild(*guildID)

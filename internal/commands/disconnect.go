@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
@@ -39,7 +38,7 @@ func (p disconnect) handle(_ discord.SlashCommandInteractionData, event *handler
 	client := event.Client()
 	guildID := event.GuildID()
 
-	if err := client.UpdateVoiceState(context.Background(), *guildID, nil, false, true); err != nil {
+	if err := client.UpdateVoiceState(event.Ctx, *guildID, nil, false, true); err != nil {
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 

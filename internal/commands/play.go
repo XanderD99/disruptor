@@ -43,7 +43,7 @@ func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.Comma
 		return fmt.Errorf("you need to be in a voice channel to use this command")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(event.Ctx, 10*time.Second)
 	defer cancel()
 
 	player := p.lavalink.ExistingPlayer(*event.GuildID())
