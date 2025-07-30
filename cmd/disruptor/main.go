@@ -123,7 +123,7 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database db.Da
 	err = session.AddCommands(
 		commands.Play(lava),
 		commands.Disconnect(lava),
-		commands.Next(manager),
+		commands.Next(manager, database),
 		commands.Interval(database, manager),
 		commands.Chance(database),
 	)

@@ -45,8 +45,7 @@ func (t guildReadyTask) Execute(ctx context.Context) error {
 		}
 	}
 
-	// Add guild to voice audio scheduler manager
-	if err := t.manager.AddGuild(guild.ID.String(), guild.Interval); err != nil {
+	if err := t.manager.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
 		return fmt.Errorf("failed to add guild %s to voice audio scheduler manager: %w", t.guildID, err)
 	}
 

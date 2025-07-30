@@ -99,8 +99,8 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
 
-	if err := i.manager.AddGuild(guildID.String(), guild.Interval); err != nil {
-		return fmt.Errorf("failed to add guild to manager: %w", err)
+	if err := i.manager.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
+		return fmt.Errorf("failed to add guild to voice audio scheduler manager: %w", err)
 	}
 
 	embed := discord.NewEmbedBuilder()
