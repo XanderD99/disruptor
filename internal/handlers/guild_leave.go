@@ -26,9 +26,5 @@ func GuildLeave(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events
 			l.Error("Failed to find guild in store", slog.Any("error", err))
 			return
 		}
-
-		if err := m.RemoveGuild(gr.Guild.ID.String()); err != nil {
-			l.Error("Failed to remove guild from voice audio scheduler manager", slog.Any("error", err))
-		}
 	}
 }

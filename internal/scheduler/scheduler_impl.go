@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -10,7 +9,6 @@ import (
 
 type scheduler struct {
 	interval time.Duration
-	guilds   map[string]struct{}
 
 	handler Handler
 	logger  *slog.Logger
@@ -26,9 +24,8 @@ func NewScheduler(logger *slog.Logger, handler Handler, opts ...Option[scheduler
 	g := &scheduler{
 		interval: time.Hour,
 		handler:  handler,
-		logger:   logger,
+		logger:   logger.With(slog.Group("scheduler", slog.Duration("interval", time.Hour))),
 
-		guilds: make(map[string]struct{}),
 		stopCh: make(chan struct{}),
 	}
 
@@ -59,26 +56,6 @@ func (ig *scheduler) GetNextIntervalTime() time.Time {
 	return ig.nextIntervalTime
 }
 
-func (ig *scheduler) AddGuild(guildID string) error {
-	ig.mu.Lock()
-	defer ig.mu.Unlock()
-
-	ig.guilds[guildID] = struct{}{}
-
-	return nil
-}
-
-func (ig *scheduler) GetGuilds() []string {
-	ig.mu.RLock()
-	defer ig.mu.RUnlock()
-
-	guilds := make([]string, 0, len(ig.guilds))
-	for guildID := range ig.guilds {
-		guilds = append(guilds, guildID)
-	}
-	return guilds
-}
-
 func (ig *scheduler) Start() {
 	// Only lock for initialization
 	ig.mu.Lock()
@@ -99,26 +76,12 @@ func (ig *scheduler) Start() {
 			return
 		case <-ig.timer.C:
 			if err := ig.handler.handle(context.Background(), ig.interval); err != nil {
-				fmt.Println(err)
-				// ig.session.Logger().Error("Failed to handle interval group", "error", err)
+				ig.logger.Error("Failed to handle interval group", slog.Any("error", err))
 			}
 
 			ig.timer.Reset(ig.interval)
 		}
 	}
-}
-
-func (ig *scheduler) RemoveGuild(guildID string) error {
-	ig.mu.Lock()
-	defer ig.mu.Unlock()
-
-	if _, exists := ig.guilds[guildID]; !exists {
-		return fmt.Errorf("guild %s not found in interval group", guildID)
-	}
-
-	delete(ig.guilds, guildID)
-
-	return nil
 }
 
 func (ig *scheduler) GetInterval() time.Duration {

@@ -5,9 +5,6 @@ import (
 )
 
 type Scheduler interface {
-	AddGuild(guildID string) error
-	RemoveGuild(guildID string) error
-	GetGuilds() []string
 	GetInterval() time.Duration
 	GetNextIntervalTime() time.Time
 	Start()

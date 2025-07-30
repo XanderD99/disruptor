@@ -13,16 +13,13 @@ import (
 type Manager interface {
 	Start() error
 	Stop() error
-	GetSchedulerForGuild(guildID string) (Scheduler, error)
+
 	AddScheduler(opts ...Option[scheduler]) error
-	AddGuild(guildID string, interval time.Duration) error
-	RemoveGuild(guildID string) error
+	GetScheduler(interval time.Duration) (Scheduler, bool)
 }
 
 type manager struct {
-	intervalGroups map[string]Scheduler
-
-	maxGuildsPerScheduler int
+	schedulers map[time.Duration]Scheduler
 
 	// Dependencies
 	session  *disruptor.Session
@@ -31,10 +28,4 @@ type manager struct {
 	logger   *slog.Logger
 
 	mu sync.RWMutex
-}
-
-func WithMaxGuildsPerScheduler(maxGuilds int) Option[manager] {
-	return func(m *manager) {
-		m.maxGuildsPerScheduler = maxGuilds
-	}
 }

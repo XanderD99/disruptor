@@ -7,16 +7,20 @@ import (
 	"github.com/disgoorg/disgo/handler"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/pkg/db"
 )
 
 type next struct {
 	manager scheduler.Manager
+	db      db.Database
 }
 
-func Next(manager scheduler.Manager) disruptor.Command {
+func Next(manager scheduler.Manager, db db.Database) disruptor.Command {
 	return next{
 		manager: manager,
+		db:      db,
 	}
 }
 
@@ -34,14 +38,19 @@ func (p next) Options() discord.SlashCommandCreate {
 }
 
 func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
-	guild := e.GuildID()
-	if guild == nil {
+	guildID := e.GuildID()
+	if guildID == nil {
 		return fmt.Errorf("guild ID is required for this command")
 	}
 
-	group, err := p.manager.GetSchedulerForGuild(guild.String())
-	if err != nil {
-		return fmt.Errorf("failed to get interval group: %w", err)
+	var guild models.Guild
+	if err := p.db.FindByID(e.Ctx, *guildID, &guild); err != nil {
+		return fmt.Errorf("failed to find guild: %w", err)
+	}
+
+	group, ok := p.manager.GetScheduler(guild.Interval)
+	if !ok {
+		return fmt.Errorf("no scheduler found")
 	}
 
 	interval := group.GetNextIntervalTime()
@@ -51,7 +60,7 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 		Color:       0x5c5fea, // PrimaryColor
 	}
 
-	_, err = e.UpdateInteractionResponse(discord.NewMessageUpdateBuilder().AddEmbeds(embed).Build())
+	_, err := e.UpdateInteractionResponse(discord.NewMessageUpdateBuilder().AddEmbeds(embed).Build())
 	if err != nil {
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}

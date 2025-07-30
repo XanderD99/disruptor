@@ -29,7 +29,7 @@ func GuildJoin(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events.
 			return
 		}
 
-		if err := m.AddGuild(guild.ID.String(), guild.Interval); err != nil {
+		if err := m.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
 			l.Error("Failed to add guild to voice audio scheduler manager", slog.Any("error", err))
 		}
 	}
