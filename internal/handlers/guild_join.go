@@ -13,7 +13,6 @@ import (
 )
 
 func GuildJoin(l *slog.Logger, d db.Database, m scheduler.Manager) func(*events.GuildJoin) {
-
 	return func(gj *events.GuildJoin) {
 		l = l.With(slog.Group("guild", slog.String("id", gj.Guild.ID.String())))
 
