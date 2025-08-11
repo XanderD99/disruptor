@@ -8,6 +8,7 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
@@ -35,12 +36,19 @@ func (p disconnect) Options() discord.SlashCommandCreate {
 }
 
 func (p disconnect) handle(_ discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
+	// Get logger from context (added by the middleware)
+	logger := logging.GetFromContext(event.Ctx)
+
 	client := event.Client()
 	guildID := event.GuildID()
+
+	logger.DebugContext(event.Ctx, "disconnecting bot from voice channel")
 
 	if err := client.UpdateVoiceState(event.Ctx, *guildID, nil, false, true); err != nil {
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
+
+	logger.DebugContext(event.Ctx, "successfully disconnected from voice channel")
 
 	embed := discord.NewEmbedBuilder()
 	embed.SetColor(util.RGBToInteger(255, 215, 0))

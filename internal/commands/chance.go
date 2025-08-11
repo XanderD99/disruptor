@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
@@ -12,6 +11,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
@@ -46,6 +46,9 @@ func (c chance) Options() discord.SlashCommandCreate {
 }
 
 func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
+	// Get logger from context (added by the middleware)
+	logger := logging.GetFromContext(event.Ctx)
+
 	ctx, cancel := context.WithCancel(event.Ctx)
 	defer cancel()
 
@@ -53,15 +56,18 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 	if guildID == nil {
 		return fmt.Errorf("this command can only be used in a guild")
 	}
+
 	var guild models.Guild
 	err := c.db.FindByID(event.Ctx, *guildID, &guild)
 	if err != nil {
-		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
+		logger.WarnContext(event.Ctx, "failed to find guild, creating new one", "error", err)
 		guild = models.NewGuild(*guildID)
 	}
 
 	percentage, ok := d.OptInt("percentage")
 	if !ok {
+		logger.DebugContext(event.Ctx, "displaying current chance percentage", "current_chance", guild.Chance)
+
 		embed := discord.NewEmbedBuilder()
 		embed.SetColor(util.RGBToInteger(255, 215, 0))
 
@@ -80,11 +86,17 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("percentage must be between 0 and 100")
 	}
 
+	oldChance := guild.Chance
 	guild.Chance = models.Chance(percentage)
 
+	logger.DebugContext(event.Ctx, "updating guild chance", "old_chance", oldChance, "new_chance", guild.Chance)
+
 	if err := c.db.Upsert(ctx, guild); err != nil {
+		logger.ErrorContext(event.Ctx, "failed to update guild chance", "error", err)
 		return fmt.Errorf("failed to update guild chance: %w", err)
 	}
+
+	logger.DebugContext(event.Ctx, "successfully updated guild chance", "new_chance", percentage)
 
 	embed := discord.NewEmbedBuilder()
 	embed.SetColor(util.RGBToInteger(255, 215, 0))

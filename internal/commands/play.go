@@ -10,6 +10,7 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
 type play struct {
@@ -36,12 +37,17 @@ func (p play) Options() discord.SlashCommandCreate {
 }
 
 func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
+	// Get logger from context (added by the middleware)
+	logger := logging.GetFromContext(event.Ctx)
+
 	client := event.Client()
 
 	voiceState, ok := client.Caches().VoiceState(*event.GuildID(), event.User().ID)
 	if !ok {
 		return fmt.Errorf("you need to be in a voice channel to use this command")
 	}
+
+	logger.DebugContext(event.Ctx, "user in voice channel", "channel.id", voiceState.ChannelID)
 
 	ctx, cancel := context.WithTimeout(event.Ctx, 10*time.Second)
 	defer cancel()
@@ -54,6 +60,8 @@ func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.Comma
 	if err := client.UpdateVoiceState(ctx, *event.GuildID(), voiceState.ChannelID, false, true); err != nil {
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
+
+	logger.DebugContext(event.Ctx, "successfully joined voice channel", "channel.id", voiceState.ChannelID)
 
 	content := fmt.Sprintf("Playing in <#%s>", voiceState.ChannelID.String())
 	response := discord.NewMessageUpdateBuilder().SetContent(content).Build()
