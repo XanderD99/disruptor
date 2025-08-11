@@ -40,7 +40,7 @@ var errDeferMiddleware = middleware.GoErrDefer(
 			Embeds: &[]discord.Embed{
 				{
 					Title:       "Error",
-					Description: fmt.Sprintf("An error occurred while processing your request: \n```ansi \n%s```", err.Error()),
+					Description: fmt.Sprintf("An error occurred while processing your request: \n```text\n%s```", err.Error()),
 					Color:       0xFF0000, // Red color for error
 				},
 			},

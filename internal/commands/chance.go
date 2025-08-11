@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/disgoorg/disgo/discord"
@@ -49,9 +48,6 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 	// Get logger from context (added by the middleware)
 	logger := logging.GetFromContext(event.Ctx)
 
-	ctx, cancel := context.WithCancel(event.Ctx)
-	defer cancel()
-
 	guildID := event.GuildID()
 	if guildID == nil {
 		return fmt.Errorf("this command can only be used in a guild")
@@ -91,7 +87,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 
 	logger.DebugContext(event.Ctx, "updating guild chance", "old_chance", oldChance, "new_chance", guild.Chance)
 
-	if err := c.db.Upsert(ctx, guild); err != nil {
+	if err := c.db.Upsert(event.Ctx, guild); err != nil {
 		logger.ErrorContext(event.Ctx, "failed to update guild chance", "error", err)
 		return fmt.Errorf("failed to update guild chance: %w", err)
 	}
