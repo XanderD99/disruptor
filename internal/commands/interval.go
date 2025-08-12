@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
@@ -14,6 +13,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
@@ -50,7 +50,10 @@ func (i interval) Options() discord.SlashCommandCreate {
 }
 
 func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	// Get logger from context (added by the middleware)
+	logger := logging.GetFromContext(event.Ctx)
+
+	ctx, cancel := context.WithCancel(event.Ctx)
 	defer cancel()
 
 	guildID := event.GuildID()
@@ -60,12 +63,13 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 
 	var guild models.Guild
 	if err := i.db.FindByID(ctx, *guildID, &guild); err != nil {
-		event.Client().Logger().Error("Failed to find guild", slog.Any("error", err))
+		logger.WarnContext(event.Ctx, "failed to find guild, creating new one", "error", err)
 		guild = models.NewGuild(*guildID)
 	}
 
 	intervalString, ok := d.OptString("duration")
 	if !ok {
+		logger.InfoContext(event.Ctx, "displaying current interval", "current_interval", guild.Interval)
 
 		embed := discord.NewEmbedBuilder()
 		embed.SetColor(util.RGBToInteger(255, 215, 0))
@@ -95,6 +99,8 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("invalid duration: %s, must be less than 24h", intervalString)
 	}
 
+	logger.DebugContext(event.Ctx, "updating guild interval", "new_interval", guild.Interval)
+
 	if err := i.db.Upsert(ctx, guild); err != nil {
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
@@ -103,11 +109,14 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("failed to add guild to voice audio scheduler manager: %w", err)
 	}
 
+	logger.DebugContext(event.Ctx, "successfully updated interval and added to scheduler", "interval", guild.Interval)
+
 	embed := discord.NewEmbedBuilder()
 	embed.SetColor(util.RGBToInteger(255, 215, 0))
 	embed.SetDescription(fmt.Sprintf("Interval set to: %s", guild.Interval))
 	msg := discord.NewMessageUpdateBuilder().SetEmbeds(embed.Build()).Build()
 	if _, err := event.UpdateInteractionResponse(msg); err != nil {
+		logger.ErrorContext(event.Ctx, "failed to update interaction response", "error", err)
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}
 

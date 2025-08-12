@@ -42,10 +42,17 @@ func NewHandler(session *disruptor.Session, db db.Database, lavalink lavalink.La
 }
 
 func (h handler) handle(ctx context.Context, interval time.Duration) error {
+	chance := util.RandomFloat(0, 100) // Use float for better precision
+
 	// Create a context with timeout for this batch
-	guilds, err := h.getEligibleGuilds(ctx, interval)
+	guilds, err := h.getEligibleGuilds(ctx, chance, interval)
 	if err != nil {
 		return fmt.Errorf("failed to find guilds: %w", err)
+	}
+
+	if len(guilds) == 0 {
+		h.session.Logger().Info("No eligible guilds found for interval", slog.Duration("interval", interval))
+		return nil
 	}
 
 	// Process guilds with worker pool
@@ -98,10 +105,8 @@ func (h handler) processGuildsWithPool(ctx context.Context, guilds []models.Guil
 }
 
 func (h handler) processGuild(ctx context.Context, guild models.Guild) error {
-	// guildID := snowflake.MustParse(guild.ID)
-
 	if _, ok := h.session.Caches().Guild(guild.ID); !ok {
-		h.session.Logger().Warn("Guild not found in cache, skipping", "guild_id", guild.ID)
+		h.session.Logger().Warn("Guild not found in cache, skipping", "guild.id", guild.ID)
 		return nil // Skip if guild is not in cache
 	}
 
@@ -162,20 +167,14 @@ func (h handler) getAvailableVoiceChannels(ctx context.Context, guildID snowflak
 	return filtered, nil
 }
 
-func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) ([]models.Guild, error) {
-	chance := util.RandomFloat(0, 100) // Use float for better precision
-
-	logger := h.session.Logger().With(
-		slog.Duration("interval", interval),
-		slog.Float64("chance", chance),
-	)
-
+func (h handler) getEligibleGuilds(ctx context.Context, chance float64, interval time.Duration) ([]models.Guild, error) {
 	filter := map[string]any{
 		"interval": int64(interval),
 		"chance": map[string]any{
 			"$gte": chance,
 		},
 	}
+
 	guilds := make([]models.Guild, 0)
 	if err := h.db.Find(ctx, &guilds, db.WithFilters(filter)); err != nil {
 		return nil, fmt.Errorf("failed to find guilds: %w", err)
@@ -183,11 +182,8 @@ func (h handler) getEligibleGuilds(ctx context.Context, interval time.Duration) 
 
 	count := len(guilds)
 	if count == 0 {
-		logger.Info("No eligible guilds found for processing")
 		return nil, nil // No eligible guilds
 	}
-
-	h.session.Logger().Info("Fetched all eligible guilds", slog.Int("count", count))
 
 	return guilds, nil
 }

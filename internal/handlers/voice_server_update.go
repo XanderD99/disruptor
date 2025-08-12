@@ -37,13 +37,13 @@ func VoiceServerUpdate(logger *slog.Logger, lava lavalink.Lavalink) func(*events
 
 		results, err := lava.BestNode().LoadTracks(ctx, sound.URL())
 		if err != nil {
-			logger.Error("Failed to load tracks", slog.Any("error", err), slog.String("sound_url", sound.URL()))
+			logger.Error("Failed to load tracks", slog.Any("error", err), slog.String("sound.url", sound.URL()))
 			return
 		}
 
 		track, ok := results.Data.(disgolavalink.Track)
 		if !ok {
-			logger.Error("Loaded track is not of type disgolavalink.Track", slog.Any("data_type", fmt.Sprintf("%T", results.Data)))
+			logger.Error("Loaded track is not of type disgolavalink.Track", slog.Any("data.type", fmt.Sprintf("%T", results.Data)))
 			return
 		}
 

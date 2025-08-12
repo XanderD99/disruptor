@@ -10,6 +10,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/pkg/db"
+	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
 type next struct {
@@ -38,6 +39,9 @@ func (p next) Options() discord.SlashCommandCreate {
 }
 
 func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+	// Get logger from context (added by the middleware)
+	logger := logging.GetFromContext(e.Ctx)
+
 	guildID := e.GuildID()
 	if guildID == nil {
 		return fmt.Errorf("guild ID is required for this command")
@@ -48,12 +52,16 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 		return fmt.Errorf("failed to find guild: %w", err)
 	}
 
+	logger.DebugContext(e.Ctx, "looking up scheduler for guild", "interval", guild.Interval)
+
 	group, ok := p.manager.GetScheduler(guild.Interval)
 	if !ok {
+		logger.WarnContext(e.Ctx, "no scheduler found for interval", "interval", guild.Interval)
 		return fmt.Errorf("no scheduler found")
 	}
 
 	interval := group.GetNextIntervalTime()
+	logger.DebugContext(e.Ctx, "retrieved next interval time", "next_time", interval)
 
 	embed := discord.Embed{
 		Description: fmt.Sprintf("Next interval time: <t:%d:F> <t:%d:R>", interval.Unix(), interval.Unix()),
@@ -64,6 +72,7 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 	if err != nil {
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}
+
 	return nil
 }
 

@@ -63,7 +63,7 @@ func GuildReady(l *slog.Logger, db db.Database, m scheduler.Manager) func(*event
 
 		go func() {
 			if err := task.Execute(context.Background()); err != nil {
-				l.Error("Failed to submit guild ready task to worker pool", slog.Any("error", err), slog.String("guild_id", gr.Guild.ID.String()))
+				l.Error("Failed to submit guild ready task to worker pool", slog.Any("error", err), slog.String("guild.id", gr.Guild.ID.String()))
 				return
 			}
 		}()

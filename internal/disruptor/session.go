@@ -3,13 +3,11 @@ package disruptor
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/disgo/handler/middleware"
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -23,27 +21,8 @@ type Session struct {
 func New(token string, opts ...bot.ConfigOpt) (*Session, error) {
 	router := handler.New()
 	router.Use(
-		middleware.GoErrDefer(
-			func(e *handler.InteractionEvent, err error) {
-				e.Client().Logger().Error("Error handling interaction", slog.Any("error", err))
-				_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
-					Embeds: &[]discord.Embed{
-						{
-							Title:       "Error",
-							Description: fmt.Sprintf("An error occurred while processing your request: %s", err.Error()),
-							Color:       0xFF0000, // Red color for error
-						},
-					},
-				})
-				if err != nil {
-					e.Client().Logger().Error("Failed to update interaction response", slog.Any("error", err))
-				}
-			},
-			discord.InteractionTypeApplicationCommand,
-			false,
-			false,
-		),
-		middleware.Logger,
+		errDeferMiddleware,
+		loggerMiddleware,
 	)
 	options := []bot.ConfigOpt{}
 	options = append(options, bot.WithEventListeners(router))

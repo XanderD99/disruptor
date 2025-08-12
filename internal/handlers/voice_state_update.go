@@ -15,7 +15,7 @@ func VoiceStateUpdate(logger *slog.Logger, lava lavalink.Lavalink) func(*events.
 	return func(vsu *events.GuildVoiceStateUpdate) {
 		// filter all non bot voice state updates out
 		if vsu.VoiceState.UserID != vsu.Client().ID() {
-			logger.Debug("Ignoring voice state update for non-bot user", slog.String("user_id", vsu.VoiceState.UserID.String()))
+			logger.Debug("Ignoring voice state update for non-bot user", slog.String("user.id", vsu.VoiceState.UserID.String()))
 			return
 		}
 
