@@ -6,19 +6,19 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
+	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
-	"github.com/XanderD99/disruptor/pkg/db"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type chance struct {
-	db db.Database
+	db *bun.DB
 }
 
-func Chance(db db.Database) disruptor.Command {
+func Chance(db *bun.DB) disruptor.Command {
 	return chance{
 		db: db,
 	}
@@ -53,10 +53,8 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	var guild models.Guild
-	err := c.db.FindByID(event.Ctx, *guildID, &guild)
-	if err != nil {
-		logger.WarnContext(event.Ctx, "failed to find guild, creating new one", "error", err)
+	guild := models.Guild{Snowflake: *guildID}
+	if err := c.db.NewSelect().Model(&guild).WherePK().Scan(event.Ctx, &guild); err != nil {
 		guild = models.NewGuild(*guildID)
 	}
 
@@ -87,8 +85,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 
 	logger.DebugContext(event.Ctx, "updating guild chance", "old_chance", oldChance, "new_chance", guild.Chance)
 
-	if err := c.db.Upsert(event.Ctx, guild); err != nil {
-		logger.ErrorContext(event.Ctx, "failed to update guild chance", "error", err)
+	if _, err := c.db.NewUpdate().Model(&guild).WherePK().Exec(event.Ctx); err != nil {
 		return fmt.Errorf("failed to update guild chance: %w", err)
 	}
 

@@ -17,7 +17,8 @@ Welcome to **Disruptor**, the bot that brings delightful chaos to your Discord s
 
 - **Tick-Tock Magic** ⏰: Advanced timer and ticker system with all the bells and whistles—intervals, jitter, grouping, and worker pools. Perfect for those unpredictable disruption schedules!
 - **Native Soundboard Support** 🎵: Leverages Discord's built-in soundboard feature - no external sound storage needed!
-- **Simplified Architecture** 🔧: Sounds come directly from Discord, only guild settings are stored in the database
+- **Simplified Architecture** 🔧: Sounds come directly from Discord, only guild settings are stored in a lightweight SQLite database
+- **Bun ORM Integration** 🏃‍♂️: Fast and modern database operations with automatic schema management
 - **Voice Channel Vigilance** 👁️: Monitors voice channels and picks the perfect moments to strike
 - **Config Your Heart Out** 🛠️: Environment variable-based configuration so you can fine-tune your chaos levels
 - **Dockerized Delight** 🐳: Optimized Dockerfile for a lean, mean, disruption machine
@@ -35,7 +36,7 @@ Before you unleash the chaos, make sure you have:
 - [Make](https://www.gnu.org/software/make/) (to make your life easier) 🛠️
 - A Discord bot token (for the chaos to be official) 🤖
 - Discord soundboard sounds uploaded to your server 🎵
-- Database for storing guild configuration (MongoDB recommended) 💾
+- SQLite database for storing guild configuration (automatically created) 💾
 
 ### Installation 🛠️
 
@@ -54,11 +55,12 @@ Before you unleash the chaos, make sure you have:
 
 3. Upload sounds to your Discord server's soundboard 🎵
 
-4. Configure your Discord bot token and database connection 🎉:
+4. Configure your Discord bot token and optionally your SQLite database path 🎉:
 
    ```bash
    export CONFIG_TOKEN=your_discord_bot_token
-   export CONFIG_DATABASE_URL=your_database_connection
+   # Optional: Configure SQLite database file (defaults to in-memory)
+   export CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared
    ./output/bin/disruptor
    ```
 
@@ -75,9 +77,12 @@ Before you unleash the chaos, make sure you have:
    ```bash
    docker run -d --name disruptor \
      -e CONFIG_TOKEN=your_discord_bot_token \
-     -e CONFIG_DATABASE_URL=your_database_connection \
+     -e CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared \
+     -v /host/path/to/data:/app/data \
      disruptor
    ```
+
+   > **Note**: The database defaults to in-memory SQLite. For persistence across container restarts, mount a volume and specify a file-based DSN as shown above.
 
 ## How It Works 🔧
 
@@ -94,11 +99,48 @@ The bot operates with a simplified architecture focused on Discord's native feat
 This bot is powered by environment variables that control the chaos levels. Key configurations include:
 
 - **Discord Bot Token**: Your bot's authentication token
-- **Database Connection**: For storing guild configuration and preferences
+- **SQLite Database**: Lightweight, file-based database for guild configuration
+  - `CONFIG_DATABASE_TYPE=sqlite` (default)
+  - `CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared` (file-based)
+  - `CONFIG_DATABASE_DSN=file::memory:?cache=shared` (in-memory, default)
 - **Disruption Intervals**: How often the bot should strike
 - **Channel Selection**: Which voice channels to target
 
 For more info have a look at [/internal/config](/internal/config/README.md)
+
+## Database 🗃️
+
+**Disruptor** now uses **SQLite** with **Bun ORM** for a simplified, lightweight data storage solution:
+
+### Why SQLite?
+
+- **Zero Configuration**: No external database server required - just works out of the box! 📦
+- **Lightweight**: Perfect for storing simple guild configurations without overhead 🪶
+- **Reliable**: ACID-compliant transactions ensure your chaos settings are never lost 🔒
+- **Portable**: Single file database that's easy to backup and migrate 📁
+- **Fast**: Local file access means lightning-fast queries ⚡
+
+### Database Options
+
+- **In-Memory** (default): `CONFIG_DATABASE_DSN=file::memory:?cache=shared`
+  - Perfect for testing and development
+  - Data is lost when the bot restarts
+
+- **File-Based**: `CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared`
+  - Persistent storage across restarts
+  - Recommended for production use
+
+- **Custom Path**: `CONFIG_DATABASE_DSN=file:/path/to/your/database.db?cache=shared`
+  - Store database wherever you want
+  - Useful for Docker volume mounts
+
+### Automatic Schema Management
+
+The bot automatically creates and manages the database schema using Bun ORM:
+
+- Tables are created on first startup
+- Schema migrations are handled automatically
+- No manual database setup required!
 
 ## Development 🛠️
 
@@ -150,8 +192,10 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 - [Discord API](https://discord.com/developers/docs/intro) for making voice channel chaos and soundboard integration possible 💬
 - [Disgo](https://github.com/disgoorg/disgo) for excellent Discord API bindings 🔗
+- [Bun](https://bun.uptrace.dev/) for the fantastic Go ORM and database toolkit 🏃‍♂️
 - [Go](https://golang.org/) for being awesome and fast 🐹
 - [Lavalink](https://github.com/freyacodes/Lavalink) for audio streaming capabilities 🎵
+- [SQLite](https://www.sqlite.org/) for providing a lightweight, reliable database solution 🗃️
 - Everyone who has been "disrupted" by this bot - you're the real heroes 🏆
 
 And of course, you, for being here and ready to spread some harmless chaos. You're the real MVP! 🎉
