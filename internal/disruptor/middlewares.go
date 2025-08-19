@@ -1,7 +1,6 @@
 package disruptor
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/disgoorg/disgo/discord"
@@ -39,8 +38,8 @@ var errDeferMiddleware = middleware.GoErrDefer(
 		_, err = e.UpdateInteractionResponse(discord.MessageUpdate{
 			Embeds: &[]discord.Embed{
 				{
-					Title:       "Error",
-					Description: fmt.Sprintf("An error occurred while processing your request: \n```text\n%s```", err.Error()),
+					Title:       "⚠️ Command failed",
+					Description: err.Error(),
 					Color:       0xFF0000, // Red color for error
 				},
 			},
