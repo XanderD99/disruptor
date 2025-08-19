@@ -18,7 +18,7 @@ type Session struct {
 }
 
 // New creates a new Discord bot with sharding support
-func New(token string, opts ...bot.ConfigOpt) (*Session, error) {
+func New(cfg Config) (*Session, error) {
 	router := handler.New()
 	router.Use(
 		errDeferMiddleware,
@@ -26,9 +26,9 @@ func New(token string, opts ...bot.ConfigOpt) (*Session, error) {
 	)
 	options := []bot.ConfigOpt{}
 	options = append(options, bot.WithEventListeners(router))
-	options = append(options, opts...)
+	options = append(options, cfg.ToSessionOpts()...)
 
-	c, err := disgo.New(token, options...)
+	c, err := disgo.New(cfg.Token, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +39,10 @@ func New(token string, opts ...bot.ConfigOpt) (*Session, error) {
 	}
 
 	return s, nil
+}
+
+func (s *Session) UpdateVoiceState(ctx context.Context, guildID snowflake.ID, channelID *snowflake.ID) error {
+	return s.Client.UpdateVoiceState(ctx, guildID, channelID, true, false)
 }
 
 func (s *Session) AddCommands(commands ...Command) error {

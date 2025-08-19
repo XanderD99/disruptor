@@ -9,29 +9,28 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/bot"
-	"github.com/disgoorg/disgo/cache"
-	"github.com/disgoorg/disgo/gateway"
-	"github.com/disgoorg/disgo/sharding"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	"github.com/uptrace/bun/extra/bundebug"
 
 	"github.com/XanderD99/disruptor/internal/commands"
-	"github.com/XanderD99/disruptor/internal/config"
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/handlers"
 	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/listeners"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
+	"github.com/XanderD99/disruptor/pkg/slogbun"
 )
 
 func main() {
-	// Load configuration
-	cfg, err := config.Load()
+	// Note: Context cancellation and graceful shutdown are handled by processes.Manager.
+	// This keeps main.go focused on initialization and wiring.
+
+	cfg, err := Load()
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)
 	}
@@ -43,19 +42,25 @@ func main() {
 
 	pm := processes.NewManager(logger)
 
-	pg, err := httpServers(cfg)
+	pg, err := initServerGroup(cfg)
 	if err != nil {
 		log.Fatalf("Error initializing HTTP servers: %v", err)
 	}
 	pm.AddProcessGroup(pg)
 
-	pg, database, err := initDatabase(cfg)
+	pg, database, err := initDatabase(cfg, logger)
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 	pm.AddProcessGroup(pg)
 
-	pg, err = initDiscordProcesses(cfg, logger, database)
+	schedulerGroup, scheduleManager, err := initSchedulers(logger)
+	if err != nil {
+		log.Fatalf("Error initializing schedulers: %v", err)
+	}
+	pm.AddProcessGroup(schedulerGroup)
+
+	pg, err = initDiscordProcesses(cfg, logger, database, scheduleManager)
 	if err != nil {
 		log.Fatalf("Error initializing Discord processes: %v", err)
 	}
@@ -67,20 +72,31 @@ func main() {
 	}
 }
 
-func httpServers(cfg config.Config) (*processes.ProcessGroup, error) {
-	group := processes.NewGroup("http", time.Second*5)
+func initServerGroup(cfg Config) (*processes.ProcessGroup, error) {
+	group := processes.NewGroup("servers", time.Second*5)
 
 	// Initialize metrics server
 	metricsServer, err := metrics.NewServer(cfg.Metrics)
 	if err != nil {
 		return nil, fmt.Errorf("error creating metrics server: %w", err)
 	}
-	group.AddProcessWithCtx("metrics-server", metricsServer.Run, false, nil)
+	group.AddProcessWithCtx("metrics", metricsServer.Run, false, nil)
 
 	return group, nil
 }
 
-func initDatabase(cfg config.Config) (*processes.ProcessGroup, *bun.DB, error) {
+func initSchedulers(logger *slog.Logger) (*processes.ProcessGroup, *scheduler.Manager, error) {
+	group := processes.NewGroup("schedulers", time.Second*5)
+
+	// Initialize voice audio scheduler
+	voiceAudioScheduler := scheduler.NewManager(scheduler.WithLogger(logger))
+
+	group.AddProcessWithCtx("manager", voiceAudioScheduler.Start, false, voiceAudioScheduler.Stop)
+
+	return group, voiceAudioScheduler, nil
+}
+
+func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bun.DB, error) {
 	group := processes.NewGroup("database", time.Second*5)
 
 	// Initialize database connection
@@ -99,9 +115,8 @@ func initDatabase(cfg config.Config) (*processes.ProcessGroup, *bun.DB, error) {
 		return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
 	}
 
-	// Add query debugging (optional)
-	database.AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithVerbose(true),
+	database.AddQueryHook(slogbun.NewQueryHook(
+		slogbun.WithLogger(logger),
 	))
 
 	group.AddProcessWithCtx("database", func(ctx context.Context) error {
@@ -112,43 +127,27 @@ func initDatabase(cfg config.Config) (*processes.ProcessGroup, *bun.DB, error) {
 	return group, database, nil
 }
 
-func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*processes.ProcessGroup, error) {
+func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleManager *scheduler.Manager) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
-	session, err := disruptor.New(cfg.Token,
-		bot.WithShardManagerConfigOpts(
-			sharding.WithLogger(logger),
-			sharding.WithShardCount(2),
-			sharding.WithShardIDs(0, 1),
-			sharding.WithAutoScaling(true),
-			sharding.WithGatewayConfigOpts(
-				gateway.WithIntents(gateway.IntentGuilds, gateway.IntentGuildVoiceStates, gateway.IntentGuildExpressions),
-				gateway.WithCompress(true),
-				gateway.WithPresenceOpts(
-					gateway.WithListeningActivity("to your commands"),
-				),
-			),
-		),
-		bot.WithCacheConfigOpts(
-			cache.WithCaches(cache.FlagsAll),
-		),
-	)
+	session, err := disruptor.New(cfg.Disruptor)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Discord bot: %w", err)
 	}
-	group.AddProcessWithCtx("bot", session.Open, false, session.Close)
+	group.AddProcessWithCtx("session", session.Open, false, session.Close)
 
 	lava := lavalink.New(cfg.LavalinkNodes, session, logger)
 	group.AddProcessWithCtx("disgolink", lava.Start, false, nil)
 
-	manager := scheduler.NewManager(logger, session, db, lava)
-	group.AddProcess("voice-audio-scheduler", manager.Start, false, manager.Stop)
+	scheduleManager.RegisterBuilder(handlers.HandlerTypeRandomVoiceJoin, func(interval time.Duration) *scheduler.Scheduler {
+		return scheduler.NewScheduler(interval, handlers.NewRandomVoiceJoinHandler(session, db))
+	})
 
 	err = session.AddCommands(
 		commands.Play(lava),
 		commands.Disconnect(lava),
-		commands.Next(manager, db),
-		commands.Interval(db, manager),
+		commands.Next(db, scheduleManager),
+		commands.Interval(db, scheduleManager),
 		commands.Chance(db),
 	)
 	if err != nil {
@@ -156,13 +155,11 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*
 	}
 
 	session.AddEventListeners(
-		bot.NewListenerFunc(handlers.VoiceStateUpdate(logger, lava)),
-		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava)),
-
-		bot.NewListenerFunc(handlers.GuildJoin(logger, db, manager)),
-		bot.NewListenerFunc(handlers.GuildLeave(logger, db, manager)),
-
-		bot.NewListenerFunc(handlers.GuildReady(logger, db, manager)),
+		bot.NewListenerFunc(listeners.VoiceStateUpdate(logger, lava)),
+		bot.NewListenerFunc(listeners.VoiceServerUpdate(logger, lava)),
+		bot.NewListenerFunc(listeners.GuildJoin(logger, db, scheduleManager)),
+		bot.NewListenerFunc(listeners.GuildLeave(logger, db, scheduleManager)),
+		bot.NewListenerFunc(listeners.GuildReady(logger, db, scheduleManager)),
 	)
 
 	return group, nil

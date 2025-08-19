@@ -106,7 +106,7 @@ This bot is powered by environment variables that control the chaos levels. Key 
 - **Disruption Intervals**: How often the bot should strike
 - **Channel Selection**: Which voice channels to target
 
-For more info have a look at [/internal/config](/internal/config/README.md)
+For more info have a look at [/docs/ENVIRONMENT.md](/docs/ENVIRONMENT.md)
 
 ## Database 🗃️
 

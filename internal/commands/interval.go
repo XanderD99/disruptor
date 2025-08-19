@@ -12,16 +12,17 @@ import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
+	"github.com/XanderD99/disruptor/internal/util"
 	"github.com/XanderD99/disruptor/pkg/logging"
-	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type interval struct {
-	manager scheduler.Manager
+	manager *scheduler.Manager
 	db      *bun.DB
 }
 
-func Interval(db *bun.DB, manager scheduler.Manager) disruptor.Command {
+func Interval(db *bun.DB, manager *scheduler.Manager) disruptor.Command {
 	return interval{
 		manager: manager,
 		db:      db,
@@ -101,7 +102,7 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
 
-	if err := i.manager.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
+	if err := i.manager.AddScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval); err != nil {
 		return fmt.Errorf("failed to add guild to voice audio scheduler manager: %w", err)
 	}
 

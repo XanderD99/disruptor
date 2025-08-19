@@ -1,4 +1,4 @@
-package handlers
+package listeners
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	disgolavalink "github.com/disgoorg/disgolink/v3/lavalink"
 
 	"github.com/XanderD99/disruptor/internal/lavalink"
-	"github.com/XanderD99/disruptor/pkg/util"
+	"github.com/XanderD99/disruptor/internal/util"
 )
 
 func VoiceServerUpdate(logger *slog.Logger, lava lavalink.Lavalink) func(*events.VoiceServerUpdate) {
