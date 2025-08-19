@@ -5,20 +5,20 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
+	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/db"
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
 type next struct {
 	manager scheduler.Manager
-	db      db.Database
+	db      *bun.DB
 }
 
-func Next(manager scheduler.Manager, db db.Database) disruptor.Command {
+func Next(manager scheduler.Manager, db *bun.DB) disruptor.Command {
 	return next{
 		manager: manager,
 		db:      db,
@@ -47,8 +47,8 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 		return fmt.Errorf("guild ID is required for this command")
 	}
 
-	var guild models.Guild
-	if err := p.db.FindByID(e.Ctx, *guildID, &guild); err != nil {
+	guild := models.Guild{Snowflake: *guildID}
+	if err := p.db.NewSelect().Model(&guild).Where("snowflake = ?", *guildID).Scan(e.Ctx, &guild); err != nil {
 		return fmt.Errorf("failed to find guild: %w", err)
 	}
 

@@ -7,12 +7,13 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/uptrace/bun"
+
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
-	"github.com/XanderD99/disruptor/pkg/db"
 )
 
-func NewManager(logger *slog.Logger, session *disruptor.Session, db db.Database, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
+func NewManager(logger *slog.Logger, session *disruptor.Session, db *bun.DB, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
 	m := &manager{
 		schedulers: make(map[time.Duration]Scheduler),
 		session:    session,

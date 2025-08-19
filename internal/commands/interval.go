@@ -1,28 +1,27 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/json"
+	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/db"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type interval struct {
 	manager scheduler.Manager
-	db      db.Database
+	db      *bun.DB
 }
 
-func Interval(db db.Database, manager scheduler.Manager) disruptor.Command {
+func Interval(db *bun.DB, manager scheduler.Manager) disruptor.Command {
 	return interval{
 		manager: manager,
 		db:      db,
@@ -53,16 +52,13 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 	// Get logger from context (added by the middleware)
 	logger := logging.GetFromContext(event.Ctx)
 
-	ctx, cancel := context.WithCancel(event.Ctx)
-	defer cancel()
-
 	guildID := event.GuildID()
 	if guildID == nil {
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	var guild models.Guild
-	if err := i.db.FindByID(ctx, *guildID, &guild); err != nil {
+	guild := models.Guild{Snowflake: *guildID}
+	if err := i.db.NewSelect().Model(&guild).WherePK().Scan(event.Ctx, &guild); err != nil {
 		logger.WarnContext(event.Ctx, "failed to find guild, creating new one", "error", err)
 		guild = models.NewGuild(*guildID)
 	}
@@ -101,7 +97,7 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 
 	logger.DebugContext(event.Ctx, "updating guild interval", "new_interval", guild.Interval)
 
-	if err := i.db.Upsert(ctx, guild); err != nil {
+	if _, err := i.db.NewUpdate().Model(&guild).WherePK().Exec(event.Ctx); err != nil {
 		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
 
@@ -116,7 +112,6 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 	embed.SetDescription(fmt.Sprintf("Interval set to: %s", guild.Interval))
 	msg := discord.NewMessageUpdateBuilder().SetEmbeds(embed.Build()).Build()
 	if _, err := event.UpdateInteractionResponse(msg); err != nil {
-		logger.ErrorContext(event.Ctx, "failed to update interaction response", "error", err)
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}
 

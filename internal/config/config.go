@@ -3,7 +3,6 @@ package config
 import (
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
-	"github.com/XanderD99/disruptor/pkg/db/mongo"
 	"github.com/XanderD99/disruptor/pkg/logging"
 
 	"github.com/caarlos0/env/v11"
@@ -30,8 +29,11 @@ type Config struct {
 
 	// 🗄️ Configuration for the database
 	Database struct {
-		Type  string       `env:"TYPE" default:"mongo"`
-		Mongo mongo.Config `envPrefix:"MONGO_"`
+		// 🔗 Database type to use
+		Type string `env:"TYPE" default:"sqlite"`
+
+		// 🔗 Database connection string
+		DSN string `env:"DSN" default:"file::memory:?cache=shared"`
 	} `envPrefix:"DATABASE_"`
 }
 

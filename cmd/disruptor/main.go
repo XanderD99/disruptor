@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -10,6 +12,10 @@ import (
 	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/sharding"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/sqlitedialect"
+	"github.com/uptrace/bun/driver/sqliteshim"
+	"github.com/uptrace/bun/extra/bundebug"
 
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/config"
@@ -17,9 +23,8 @@ import (
 	"github.com/XanderD99/disruptor/internal/handlers"
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
+	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/db"
-	"github.com/XanderD99/disruptor/pkg/db/mongo"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
 )
@@ -75,20 +80,39 @@ func httpServers(cfg config.Config) (*processes.ProcessGroup, error) {
 	return group, nil
 }
 
-func initDatabase(cfg config.Config) (*processes.ProcessGroup, db.Database, error) {
+func initDatabase(cfg config.Config) (*processes.ProcessGroup, *bun.DB, error) {
 	group := processes.NewGroup("database", time.Second*5)
 
+	// Initialize database connection
+	var database *bun.DB
+
 	switch cfg.Database.Type {
-	case "mongo":
-		db := mongo.New(cfg.Database.Mongo)
-		group.AddProcessWithCtx("mongo", db.Connect, false, db.Disconnect)
-		return group, db, nil
+	case "sqlite":
+		sqldb, err := sql.Open(sqliteshim.ShimName, cfg.Database.DSN)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error initializing database: %w", err)
+		}
+		group.AddProcessWithoutStart("sqlite", sqldb.Close)
+
+		database = bun.NewDB(sqldb, sqlitedialect.New())
+	default:
+		return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
 	}
 
-	return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
+	// Add query debugging (optional)
+	database.AddQueryHook(bundebug.NewQueryHook(
+		bundebug.WithVerbose(true),
+	))
+
+	group.AddProcessWithCtx("database", func(ctx context.Context) error {
+		_, err := database.NewCreateTable().IfNotExists().Model(&models.Guild{}).Exec(ctx)
+		return err
+	}, false, nil)
+
+	return group, database, nil
 }
 
-func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database db.Database) (*processes.ProcessGroup, error) {
+func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
 	session, err := disruptor.New(cfg.Token,
@@ -117,15 +141,15 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database db.Da
 	lava := lavalink.New(cfg.LavalinkNodes, session, logger)
 	group.AddProcessWithCtx("disgolink", lava.Start, false, nil)
 
-	manager := scheduler.NewManager(logger, session, database, lava)
+	manager := scheduler.NewManager(logger, session, db, lava)
 	group.AddProcess("voice-audio-scheduler", manager.Start, false, manager.Stop)
 
 	err = session.AddCommands(
 		commands.Play(lava),
 		commands.Disconnect(lava),
-		commands.Next(manager, database),
-		commands.Interval(database, manager),
-		commands.Chance(database),
+		commands.Next(manager, db),
+		commands.Interval(db, manager),
+		commands.Chance(db),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error adding commands: %w", err)
@@ -135,10 +159,10 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, database db.Da
 		bot.NewListenerFunc(handlers.VoiceStateUpdate(logger, lava)),
 		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava)),
 
-		bot.NewListenerFunc(handlers.GuildJoin(logger, database, manager)),
-		bot.NewListenerFunc(handlers.GuildLeave(logger, database, manager)),
+		bot.NewListenerFunc(handlers.GuildJoin(logger, db, manager)),
+		bot.NewListenerFunc(handlers.GuildLeave(logger, db, manager)),
 
-		bot.NewListenerFunc(handlers.GuildReady(logger, database, manager)),
+		bot.NewListenerFunc(handlers.GuildReady(logger, db, manager)),
 	)
 
 	return group, nil

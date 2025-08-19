@@ -7,14 +7,14 @@ import (
 
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
-	"github.com/XanderD99/disruptor/pkg/db"
 )
 
 type guildReadyTaskBuilder struct {
-	db      db.Database
+	db      *bun.DB
 	manager scheduler.Manager
 }
 
@@ -30,19 +30,17 @@ func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildRe
 type guildReadyTask struct {
 	guildID snowflake.ID
 	shardID int
-	db      db.Database
+	db      *bun.DB
 	manager scheduler.Manager
 }
 
 // Execute implements workerpool.Task.
 func (t guildReadyTask) Execute(ctx context.Context) error {
-	var guild models.Guild
+	guild := models.NewGuild(t.guildID)
 
-	if err := t.db.FindByID(ctx, t.guildID, &guild); err != nil {
-		guild = models.NewGuild(t.guildID)
-		if err := t.db.Create(ctx, guild); err != nil {
-			return fmt.Errorf("failed to create guild %s in store: %w", t.guildID, err)
-		}
+	_, err := t.db.NewInsert().Model(&guild).On("CONFLICT (snowflake) DO NOTHING").Exec(ctx, &guild)
+	if err != nil {
+		return err
 	}
 
 	if err := t.manager.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
@@ -52,7 +50,7 @@ func (t guildReadyTask) Execute(ctx context.Context) error {
 	return nil
 }
 
-func GuildReady(l *slog.Logger, db db.Database, m scheduler.Manager) func(*events.GuildReady) {
+func GuildReady(l *slog.Logger, db *bun.DB, m scheduler.Manager) func(*events.GuildReady) {
 	guildReadyTaskBuilder := &guildReadyTaskBuilder{
 		db:      db,
 		manager: m,
