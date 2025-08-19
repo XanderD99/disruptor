@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sync"
+	"math"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
@@ -27,17 +27,13 @@ type handler struct {
 	db       *bun.DB
 	lavalink lavalink.Lavalink // Assuming lavalink is an interface defined in your project
 
-	workerPool chan struct{} // Semaphore for controlling concurrent workers
 }
-
-var maxWorkers = 10 // Maximum number of concurrent workers
 
 func NewHandler(session *disruptor.Session, db *bun.DB, lavalink lavalink.Lavalink) Handler {
 	return handler{
-		session:    session,
-		db:         db,
-		lavalink:   lavalink,
-		workerPool: make(chan struct{}, maxWorkers),
+		session:  session,
+		db:       db,
+		lavalink: lavalink,
 	}
 }
 
@@ -60,53 +56,23 @@ func (h handler) handle(ctx context.Context, interval time.Duration) error {
 }
 
 func (h handler) processGuildsWithPool(ctx context.Context, guilds []models.Guild) error {
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(guilds))
-
-	process := func(g models.Guild) {
-		defer func() {
-			<-h.workerPool // Release worker
-			wg.Done()
-		}()
-
-		if err := h.processGuild(ctx, g); err != nil {
-			select {
-			case errChan <- err:
-			default: // Don't block if channel is full
-			}
+	maxWorkers := int(math.Max(1, math.Sqrt(float64(len(guilds)))))
+	return util.ProcessWithWorkerPool(ctx, guilds, maxWorkers, func(ctx context.Context, guild models.Guild) {
+		if err := h.processGuild(ctx, guild); err != nil {
+			h.session.Logger().Error("Failed to process guild", slog.Any("guild.id", guild.Snowflake), slog.Any("error", err))
 		}
-	}
-
-	for _, guild := range guilds {
-		wg.Add(1)
-
-		// Acquire worker from pool
-		select {
-		case h.workerPool <- struct{}{}:
-			go process(guild)
-		case <-ctx.Done():
-			wg.Done()
-			return ctx.Err()
-		}
-	}
-
-	// Wait for all workers to complete
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	// Collect errors (you might want to log them instead of returning)
-	for err := range errChan {
-		h.session.Logger().Error("Failed to process guild", "error", err)
-	}
-
-	return nil // Don't fail the entire batch for individual guild failures
+	})
 }
 
 func (h handler) processGuild(ctx context.Context, guild models.Guild) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	if _, ok := h.session.Caches().Guild(guild.Snowflake); !ok {
-		h.session.Logger().Warn("Guild not found in cache, skipping", "guild.id", guild.Snowflake)
+		h.session.Logger().Warn("Guild not found in cache, skipping", slog.Any("guild.id", guild.Snowflake))
 		return nil // Skip if guild is not in cache
 	}
 
@@ -121,9 +87,7 @@ func (h handler) processGuild(ctx context.Context, guild models.Guild) error {
 	}
 
 	// Select a random channel
-	channel := channels[util.RandomInt(0, len(channels)-1)]
-
-	channelID := channel.ID()
+	channelID := randomChannelID(channels)
 	if err := h.session.UpdateVoiceState(ctx, guild.Snowflake, &channelID, false, true); err != nil {
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
@@ -131,7 +95,15 @@ func (h handler) processGuild(ctx context.Context, guild models.Guild) error {
 	return nil
 }
 
+func randomChannelID(channels []discord.GuildChannel) snowflake.ID {
+	return channels[util.RandomInt(0, len(channels)-1)].ID()
+}
+
 func (h handler) getAvailableVoiceChannels(ctx context.Context, guildID snowflake.ID) ([]discord.GuildChannel, error) {
+	if h.session.Caches().GuildSoundboardSoundsLen(guildID) == 0 {
+		return nil, fmt.Errorf("there are no soundboard sounds available")
+	}
+
 	channels, err := h.session.Rest().GetGuildChannels(guildID, rest.WithCtx(ctx))
 	if err != nil {
 		return nil, err
@@ -148,19 +120,20 @@ func (h handler) getAvailableVoiceChannels(ctx context.Context, guildID snowflak
 			continue
 		}
 
-		audioChannel, ok := h.session.Caches().GuildAudioChannel(channel.ID())
+		voiceChannel, ok := h.session.Caches().GuildVoiceChannel(channel.ID())
 		if !ok {
 			continue
 		}
-		members := h.session.Caches().AudioChannelMembers(audioChannel)
-		if len(members) == 0 {
+
+		permissions := h.session.Caches().MemberPermissionsInChannel(voiceChannel, member)
+		if !util.HasVoicePermissions(permissions) {
 			continue
 		}
 
-		permissions := h.session.Caches().MemberPermissionsInChannel(audioChannel, member)
-		if !permissions.Has(discord.PermissionViewChannel) || !permissions.Has(discord.PermissionConnect) {
+		if len(h.session.Caches().AudioChannelMembers(voiceChannel)) == 0 {
 			continue
 		}
+
 		filtered = append(filtered, channel)
 	}
 
