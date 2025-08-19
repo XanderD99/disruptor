@@ -48,6 +48,16 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
+	// Initialize metrics registry
+	metricsRegistry := metrics.GetRegistry()
+	if err := metricsRegistry.Register(); err != nil {
+		log.Fatalf("Error registering metrics: %v", err)
+	}
+
+	// Start system metrics collection
+	systemMetrics := metrics.NewSystemMetrics()
+	go systemMetrics.StartSystemMetricsCollection(context.Background(), 30*time.Second)
+
 	pg, database, err := initDatabase(cfg, logger)
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
@@ -117,6 +127,7 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 
 	database.AddQueryHook(slogbun.NewQueryHook(
 		slogbun.WithLogger(logger),
+		slogbun.WithMetrics(metrics.NewDatabaseMetricsHook()),
 	))
 
 	group.AddProcessWithCtx("database", func(ctx context.Context) error {
@@ -161,6 +172,10 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 		bot.NewListenerFunc(listeners.GuildLeave(logger, db, scheduleManager)),
 		bot.NewListenerFunc(listeners.GuildReady(logger, db, scheduleManager)),
 	)
+
+	// Initialize Discord collector for guild metrics
+	discordCollector := metrics.NewDiscordCollector(session)
+	group.AddProcessWithCtx("discord_metrics", discordCollector.StartCollection, false, nil)
 
 	return group, nil
 }

@@ -103,6 +103,14 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+// WithMetrics enables database metrics collection
+func WithMetrics(metricsHook DatabaseMetricsHook) Option {
+	return func(h *QueryHook) {
+		h.metricsHook = metricsHook
+		h.collectMetrics = true
+	}
+}
+
 // QueryHook wraps query hook
 type QueryHook struct {
 	enabled bool
@@ -118,6 +126,16 @@ type QueryHook struct {
 	logSlow time.Duration
 
 	logger *slog.Logger
+	
+	// metrics hook for database metrics collection
+	metricsHook DatabaseMetricsHook
+	collectMetrics bool
+}
+
+// DatabaseMetricsHook interface for collecting database metrics
+type DatabaseMetricsHook interface {
+	BeforeQuery(ctx context.Context, event *bun.QueryEvent) context.Context
+	AfterQuery(ctx context.Context, event *bun.QueryEvent)
 }
 
 // LogEntryVars variables made available t otemplate
@@ -158,13 +176,22 @@ func NewQueryHook(options ...Option) *QueryHook {
 	return h
 }
 
-// BeforeQuery does nothing
+// BeforeQuery calls metrics hook if enabled and does preparation
 func (h *QueryHook) BeforeQuery(ctx context.Context, event *bun.QueryEvent) context.Context {
+	// Call metrics hook if enabled
+	if h.collectMetrics && h.metricsHook != nil {
+		ctx = h.metricsHook.BeforeQuery(ctx, event)
+	}
 	return ctx
 }
 
-// AfterQuery convert a bun QueryEvent into a slog message
+// AfterQuery convert a bun QueryEvent into a slog message and collect metrics
 func (h *QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
+	// Call metrics hook first (always collect metrics regardless of logging settings)
+	if h.collectMetrics && h.metricsHook != nil {
+		h.metricsHook.AfterQuery(ctx, event)
+	}
+
 	if !h.enabled {
 		return
 	}

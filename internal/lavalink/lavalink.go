@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/metrics"
 )
 
 type Node struct {
@@ -59,6 +60,10 @@ func onTrackStart(logger *slog.Logger) func(disgolink.Player, disgolavalink.Trac
 		)
 
 		logger.Info("track started")
+		
+		// Record audio track event
+		audioMetrics := metrics.NewAudioMetrics()
+		audioMetrics.RecordTrackEvent("start", guildID)
 	}
 }
 
@@ -74,6 +79,10 @@ func onTrackEnd(session *disruptor.Session, logger *slog.Logger) func(disgolink.
 		)
 
 		logger.Info("track ended")
+		
+		// Record audio track event and processing duration
+		audioMetrics := metrics.NewAudioMetrics()
+		audioMetrics.RecordTrackEvent("end", guildID)
 
 		// Calculate sleep duration as 2% of track duration, max 500ms
 		trackDuration := time.Duration(event.Track.Info.Length) * time.Millisecond
@@ -83,11 +92,19 @@ func onTrackEnd(session *disruptor.Session, logger *slog.Logger) func(disgolink.
 		sleepDuration := max(min(time.Duration(float64(trackDuration)*0.02), 500*time.Millisecond), 250*time.Millisecond)
 
 		logger.Debug("waiting before leaving voice channel", slog.Duration("sleep", sleepDuration))
+		
+		// Record audio processing duration for the sleep/cleanup operation
+		timer := audioMetrics.NewAudioProcessingTimer("cleanup", guildID)
 		time.Sleep(sleepDuration)
 
 		if err := session.UpdateVoiceState(context.Background(), guildID, nil); err != nil {
 			logger.Error("failed to update voice state after track end", slog.Any("error", err))
+			audioMetrics.RecordVoiceStateUpdate(guildID, false)
+		} else {
+			audioMetrics.RecordVoiceStateUpdate(guildID, true)
 		}
+		
+		timer.Finish()
 	}
 }
 
