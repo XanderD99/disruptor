@@ -108,7 +108,18 @@ func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, 
 		return nil, fmt.Errorf("there are no soundboard sounds available")
 	}
 
+	// Record Discord API call metrics
+	discordMetrics := metrics.NewDiscordAPIMetrics()
+	timer := discordMetrics.NewDiscordAPITimer("/guilds/{guild.id}/channels", "GET")
+	
 	channels, err := session.Rest().GetGuildChannels(guildID, rest.WithCtx(ctx))
+	
+	statusCode := 200
+	if err != nil {
+		statusCode = 500 // Assume server error for failed requests
+	}
+	timer.Finish(statusCode)
+	
 	if err != nil {
 		return nil, err
 	}

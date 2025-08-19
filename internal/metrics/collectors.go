@@ -2,29 +2,33 @@ package metrics
 
 import (
 	"context"
-
-	"github.com/XanderD99/disruptor/internal/disruptor"
 )
 
-// DiscordCollector collects Discord-related metrics using the new disgo session
+// DiscordSessionInterface defines the interface needed for Discord metrics collection
+// This prevents import cycle by not importing the disruptor package directly
+type DiscordSessionInterface interface {
+	GuildsLen() int
+}
+
+// DiscordCollector collects Discord-related metrics using session interface
 type DiscordCollector struct {
-	Session *disruptor.Session
+	session DiscordSessionInterface
 	metrics *SystemMetrics
 }
 
 // NewDiscordCollector creates a new Discord collector
-func NewDiscordCollector(session *disruptor.Session) *DiscordCollector {
+func NewDiscordCollector(session DiscordSessionInterface) *DiscordCollector {
 	return &DiscordCollector{
-		Session: session,
+		session: session,
 		metrics: NewSystemMetrics(),
 	}
 }
 
 // CollectGuildMetrics updates guild count metrics
 func (c *DiscordCollector) CollectGuildMetrics() {
-	if c.Session != nil {
+	if c.session != nil {
 		// Update guild count using the new metrics registry
-		guildCount := float64(c.Session.Caches().GuildsLen())
+		guildCount := float64(c.session.GuildsLen())
 		c.metrics.RecordGuildCount("0", guildCount) // Using "0" as default shard ID
 	}
 }
