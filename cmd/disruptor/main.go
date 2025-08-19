@@ -20,8 +20,8 @@ import (
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/config"
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/handlers"
 	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/listeners"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
@@ -156,13 +156,11 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*
 	}
 
 	session.AddEventListeners(
-		bot.NewListenerFunc(handlers.VoiceStateUpdate(logger, lava)),
-		bot.NewListenerFunc(handlers.VoiceServerUpdate(logger, lava)),
-
-		bot.NewListenerFunc(handlers.GuildJoin(logger, db, manager)),
-		bot.NewListenerFunc(handlers.GuildLeave(logger, db, manager)),
-
-		bot.NewListenerFunc(handlers.GuildReady(logger, db, manager)),
+		bot.NewListenerFunc(listeners.VoiceStateUpdate(logger, lava)),
+		bot.NewListenerFunc(listeners.VoiceServerUpdate(logger, lava)),
+		bot.NewListenerFunc(listeners.GuildJoin(logger, db, manager)),
+		bot.NewListenerFunc(listeners.GuildLeave(logger, db, manager)),
+		bot.NewListenerFunc(listeners.GuildReady(logger, db, manager)),
 	)
 
 	return group, nil
