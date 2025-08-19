@@ -41,6 +41,10 @@ func New(token string, opts ...bot.ConfigOpt) (*Session, error) {
 	return s, nil
 }
 
+func (s *Session) UpdateVoiceState(ctx context.Context, guildID snowflake.ID, channelID *snowflake.ID) error {
+	return s.Client.UpdateVoiceState(ctx, guildID, channelID, true, false)
+}
+
 func (s *Session) AddCommands(commands ...Command) error {
 	cmds := make([]discord.ApplicationCommandCreate, 0, len(commands))
 	for _, cmd := range commands {

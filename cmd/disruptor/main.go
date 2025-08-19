@@ -30,7 +30,9 @@ import (
 )
 
 func main() {
-	// Load configuration
+	// Note: Context cancellation and graceful shutdown are handled by processes.Manager.
+	// This keeps main.go focused on initialization and wiring.
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)
@@ -43,7 +45,7 @@ func main() {
 
 	pm := processes.NewManager(logger)
 
-	pg, err := httpServers(cfg)
+	pg, err := initServerGroup(cfg)
 	if err != nil {
 		log.Fatalf("Error initializing HTTP servers: %v", err)
 	}
@@ -55,7 +57,13 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
-	pg, err = initDiscordProcesses(cfg, logger, database)
+	schedulerGroup, scheduleManager, err := initSchedulers(logger)
+	if err != nil {
+		log.Fatalf("Error initializing schedulers: %v", err)
+	}
+	pm.AddProcessGroup(schedulerGroup)
+
+	pg, err = initDiscordProcesses(cfg, logger, database, scheduleManager)
 	if err != nil {
 		log.Fatalf("Error initializing Discord processes: %v", err)
 	}
@@ -67,17 +75,28 @@ func main() {
 	}
 }
 
-func httpServers(cfg config.Config) (*processes.ProcessGroup, error) {
-	group := processes.NewGroup("http", time.Second*5)
+func initServerGroup(cfg config.Config) (*processes.ProcessGroup, error) {
+	group := processes.NewGroup("servers", time.Second*5)
 
 	// Initialize metrics server
 	metricsServer, err := metrics.NewServer(cfg.Metrics)
 	if err != nil {
 		return nil, fmt.Errorf("error creating metrics server: %w", err)
 	}
-	group.AddProcessWithCtx("metrics-server", metricsServer.Run, false, nil)
+	group.AddProcessWithCtx("metrics", metricsServer.Run, false, nil)
 
 	return group, nil
+}
+
+func initSchedulers(logger *slog.Logger) (*processes.ProcessGroup, *scheduler.Manager, error) {
+	group := processes.NewGroup("schedulers", time.Second*5)
+
+	// Initialize voice audio scheduler
+	voiceAudioScheduler := scheduler.NewManager(scheduler.WithLogger(logger))
+
+	group.AddProcessWithCtx("manager", voiceAudioScheduler.Start, false, voiceAudioScheduler.Stop)
+
+	return group, voiceAudioScheduler, nil
 }
 
 func initDatabase(cfg config.Config, logger *slog.Logger) (*processes.ProcessGroup, *bun.DB, error) {
@@ -111,7 +130,7 @@ func initDatabase(cfg config.Config, logger *slog.Logger) (*processes.ProcessGro
 	return group, database, nil
 }
 
-func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*processes.ProcessGroup, error) {
+func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB, scheduleManager *scheduler.Manager) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
 	session, err := disruptor.New(cfg.Token,
@@ -135,19 +154,16 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*
 	if err != nil {
 		return nil, fmt.Errorf("error creating Discord bot: %w", err)
 	}
-	group.AddProcessWithCtx("bot", session.Open, false, session.Close)
+	group.AddProcessWithCtx("session", session.Open, false, session.Close)
 
 	lava := lavalink.New(cfg.LavalinkNodes, session, logger)
 	group.AddProcessWithCtx("disgolink", lava.Start, false, nil)
 
-	manager := scheduler.NewManager(logger, session, db, lava)
-	group.AddProcess("voice-audio-scheduler", manager.Start, false, manager.Stop)
-
 	err = session.AddCommands(
 		commands.Play(lava),
 		commands.Disconnect(lava),
-		commands.Next(manager, db),
-		commands.Interval(db, manager),
+		commands.Next(db, scheduleManager),
+		commands.Interval(db, scheduleManager),
 		commands.Chance(db),
 	)
 	if err != nil {
@@ -157,9 +173,9 @@ func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB) (*
 	session.AddEventListeners(
 		bot.NewListenerFunc(listeners.VoiceStateUpdate(logger, lava)),
 		bot.NewListenerFunc(listeners.VoiceServerUpdate(logger, lava)),
-		bot.NewListenerFunc(listeners.GuildJoin(logger, db, manager)),
-		bot.NewListenerFunc(listeners.GuildLeave(logger, db, manager)),
-		bot.NewListenerFunc(listeners.GuildReady(logger, db, manager)),
+		bot.NewListenerFunc(listeners.GuildJoin(logger, db, scheduleManager)),
+		bot.NewListenerFunc(listeners.GuildLeave(logger, db, scheduleManager)),
+		bot.NewListenerFunc(listeners.GuildReady(logger, db, scheduleManager)),
 	)
 
 	return group, nil

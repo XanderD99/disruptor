@@ -8,8 +8,8 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
+	"github.com/XanderD99/disruptor/internal/util"
 	"github.com/XanderD99/disruptor/pkg/logging"
-	"github.com/XanderD99/disruptor/pkg/util"
 )
 
 type disconnect struct {

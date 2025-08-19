@@ -10,15 +10,16 @@ import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
 type next struct {
-	manager scheduler.Manager
+	manager *scheduler.Manager
 	db      *bun.DB
 }
 
-func Next(manager scheduler.Manager, db *bun.DB) disruptor.Command {
+func Next(db *bun.DB, manager *scheduler.Manager) disruptor.Command {
 	return next{
 		manager: manager,
 		db:      db,
@@ -54,13 +55,13 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 
 	logger.DebugContext(e.Ctx, "looking up scheduler for guild", "interval", guild.Interval)
 
-	group, ok := p.manager.GetScheduler(guild.Interval)
+	group, ok := p.manager.GetScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval)
 	if !ok {
 		logger.WarnContext(e.Ctx, "no scheduler found for interval", "interval", guild.Interval)
 		return fmt.Errorf("no scheduler found")
 	}
 
-	interval := group.GetNextIntervalTime()
+	interval := group.NextInterval()
 	logger.DebugContext(e.Ctx, "retrieved next interval time", "next_time", interval)
 
 	embed := discord.Embed{

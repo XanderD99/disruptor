@@ -11,9 +11,10 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 )
 
-func GuildJoin(l *slog.Logger, db *bun.DB, m scheduler.Manager) func(*events.GuildJoin) {
+func GuildJoin(l *slog.Logger, db *bun.DB, m *scheduler.Manager) func(*events.GuildJoin) {
 	return func(gj *events.GuildJoin) {
 		l = l.With(slog.Group("guild", slog.String("id", gj.Guild.ID.String())))
 
@@ -32,7 +33,7 @@ func GuildJoin(l *slog.Logger, db *bun.DB, m scheduler.Manager) func(*events.Gui
 		})
 
 		errGroup.Go(func() (err error) {
-			err = m.AddScheduler(scheduler.WithInterval(guild.Interval))
+			err = m.AddScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval)
 			return
 		})
 

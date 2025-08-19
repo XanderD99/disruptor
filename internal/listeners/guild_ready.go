@@ -11,11 +11,12 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 )
 
 type guildReadyTaskBuilder struct {
 	db      *bun.DB
-	manager scheduler.Manager
+	manager *scheduler.Manager
 }
 
 func (b *guildReadyTaskBuilder) Build(guildID snowflake.ID, shardID int) guildReadyTask {
@@ -31,7 +32,7 @@ type guildReadyTask struct {
 	guildID snowflake.ID
 	shardID int
 	db      *bun.DB
-	manager scheduler.Manager
+	manager *scheduler.Manager
 }
 
 // Execute implements workerpool.Task.
@@ -43,14 +44,14 @@ func (t guildReadyTask) Execute(ctx context.Context) error {
 		return err
 	}
 
-	if err := t.manager.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
+	if err := t.manager.AddScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval); err != nil {
 		return fmt.Errorf("failed to add guild %s to voice audio scheduler manager: %w", t.guildID, err)
 	}
 
 	return nil
 }
 
-func GuildReady(l *slog.Logger, db *bun.DB, m scheduler.Manager) func(*events.GuildReady) {
+func GuildReady(l *slog.Logger, db *bun.DB, m *scheduler.Manager) func(*events.GuildReady) {
 	guildReadyTaskBuilder := &guildReadyTaskBuilder{
 		db:      db,
 		manager: m,

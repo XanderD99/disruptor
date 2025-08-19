@@ -85,7 +85,7 @@ func onTrackEnd(session *disruptor.Session, logger *slog.Logger) func(disgolink.
 		logger.Debug("waiting before leaving voice channel", slog.Duration("sleep", sleepDuration))
 		time.Sleep(sleepDuration)
 
-		if err := session.UpdateVoiceState(context.Background(), guildID, nil, false, true); err != nil {
+		if err := session.UpdateVoiceState(context.Background(), guildID, nil); err != nil {
 			logger.Error("failed to update voice state after track end", slog.Any("error", err))
 		}
 	}

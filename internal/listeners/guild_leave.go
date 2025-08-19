@@ -12,7 +12,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/scheduler"
 )
 
-func GuildLeave(l *slog.Logger, db *bun.DB, m scheduler.Manager) func(*events.GuildLeave) {
+func GuildLeave(l *slog.Logger, db *bun.DB, m *scheduler.Manager) func(*events.GuildLeave) {
 	return func(gr *events.GuildLeave) {
 		l = l.With(slog.Group("guild", slog.String("id", gr.Guild.ID.String())))
 
