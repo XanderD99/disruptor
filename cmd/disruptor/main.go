@@ -15,7 +15,6 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
-	"github.com/uptrace/bun/extra/bundebug"
 
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/config"
@@ -27,6 +26,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
+	"github.com/XanderD99/disruptor/pkg/slogbun"
 )
 
 func main() {
@@ -49,7 +49,7 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
-	pg, database, err := initDatabase(cfg)
+	pg, database, err := initDatabase(cfg, logger)
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
@@ -80,7 +80,7 @@ func httpServers(cfg config.Config) (*processes.ProcessGroup, error) {
 	return group, nil
 }
 
-func initDatabase(cfg config.Config) (*processes.ProcessGroup, *bun.DB, error) {
+func initDatabase(cfg config.Config, logger *slog.Logger) (*processes.ProcessGroup, *bun.DB, error) {
 	group := processes.NewGroup("database", time.Second*5)
 
 	// Initialize database connection
@@ -99,9 +99,8 @@ func initDatabase(cfg config.Config) (*processes.ProcessGroup, *bun.DB, error) {
 		return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
 	}
 
-	// Add query debugging (optional)
-	database.AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithVerbose(true),
+	database.AddQueryHook(slogbun.NewQueryHook(
+		slogbun.WithLogger(logger),
 	))
 
 	group.AddProcessWithCtx("database", func(ctx context.Context) error {
