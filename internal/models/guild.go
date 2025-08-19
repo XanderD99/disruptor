@@ -22,9 +22,9 @@ type Guild struct {
 	Chance    Chance        `bun:"chance" validate:"required,gt=0,lte=100"` // chance of a sound being played
 	Interval  time.Duration `bun:"interval" validate:"required"`            // interval between sounds
 
-	CreatedAt time.Time `bun:"create_at,nullzero,default:current_timestamp" validate:"required"` // when the guild was created
-	UpdatedAt time.Time `bun:"update_at,nullzero,default:current_timestamp" validate:"required"` // when the guild was last updated
-	DeletedAt time.Time `bun:"deleted_at,soft_delete,nullzero" validate:"required"`              // when the guild was deleted
+	CreatedAt time.Time `bun:"created_at,nullzero,default:current_timestamp" validate:"required"` // when the guild was created
+	UpdatedAt time.Time `bun:"updated_at,nullzero,default:current_timestamp" validate:"required"` // when the guild was last updated
+	DeletedAt time.Time `bun:"deleted_at,soft_delete,nullzero" validate:"required"`               // when the guild was deleted
 }
 
 var _ bun.BeforeAppendModelHook = (*Guild)(nil)

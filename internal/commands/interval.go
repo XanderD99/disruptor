@@ -98,8 +98,7 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 	logger.DebugContext(event.Ctx, "updating guild interval", "new_interval", guild.Interval)
 
 	if _, err := i.db.NewUpdate().Model(&guild).WherePK().Exec(event.Ctx); err != nil {
-		logger.ErrorContext(event.Ctx, "failed to update guild chance", "error", err)
-		return fmt.Errorf("failed to update guild chance: %w", err)
+		return fmt.Errorf("failed to update guild interval: %w", err)
 	}
 
 	if err := i.manager.AddScheduler(scheduler.WithInterval(guild.Interval)); err != nil {
@@ -113,7 +112,6 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 	embed.SetDescription(fmt.Sprintf("Interval set to: %s", guild.Interval))
 	msg := discord.NewMessageUpdateBuilder().SetEmbeds(embed.Build()).Build()
 	if _, err := event.UpdateInteractionResponse(msg); err != nil {
-		logger.ErrorContext(event.Ctx, "failed to update interaction response", "error", err)
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}
 
