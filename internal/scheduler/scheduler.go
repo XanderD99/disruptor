@@ -10,15 +10,30 @@ type Scheduler interface {
 	Start()
 	Stop() error
 	IsRunning() bool
-	UpdateOptions(opts ...Option[scheduler]) error
 }
 
-var _ Scheduler = (*scheduler)(nil)
+type Option[T any] interface {
+	Apply(*T)
+	IntervalOrDefault(defaultInterval time.Duration) time.Duration
+}
 
-type Option[T any] func(*T)
+// Example option for interval configuration.
+type intervalOption struct {
+	interval time.Duration
+}
+
+func (o intervalOption) Apply(s *scheduler) {
+	if s.timer != nil {
+		s.timer.interval = o.interval
+	}
+}
+func (o intervalOption) IntervalOrDefault(defaultInterval time.Duration) time.Duration {
+	if o.interval > 0 {
+		return o.interval
+	}
+	return defaultInterval
+}
 
 func WithInterval(interval time.Duration) Option[scheduler] {
-	return func(ig *scheduler) {
-		ig.interval = interval
-	}
+	return intervalOption{interval: interval}
 }

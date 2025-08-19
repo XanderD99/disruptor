@@ -13,17 +13,13 @@ import (
 	"github.com/XanderD99/disruptor/internal/lavalink"
 )
 
-func NewManager(logger *slog.Logger, session *disruptor.Session, db *bun.DB, lavalink lavalink.Lavalink, opts ...Option[manager]) Manager {
+func NewManager(logger *slog.Logger, session *disruptor.Session, db *bun.DB, lavalink lavalink.Lavalink) Manager {
 	m := &manager{
 		schedulers: make(map[time.Duration]Scheduler),
 		session:    session,
 		lavalink:   lavalink,
 		db:         db,
 		logger:     logger.With(slog.String("component", "voice_audio_scheduler_manager")),
-	}
-
-	for _, opt := range opts {
-		opt(m)
 	}
 
 	return m
