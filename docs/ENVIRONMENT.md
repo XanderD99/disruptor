@@ -3,8 +3,9 @@
 ## Config
 
  - `CONFIG_TOKEN` (**required**) - 🔑 The bot token used to connect to Discord
- - `CONFIG_SHARD_ID` (default: `0`) - 🔢 Shard ID to use, 0 for automatic assignment
- - `CONFIG_SHARD_COUNT` (default: `1`) - 🔢 Total number of shards to use, 0 for automatic calculation
+ - `CONFIG_SHARDING_IDS` (comma-separated) - 🔢 Shard ID to use, 0 for automatic assignment
+ - `CONFIG_SHARDING_COUNT` (default: `1`) - 🔢 Total number of shards to use, 0 for automatic calculation
+ - `CONFIG_SHARDING_AUTOSCALING` (default: `false`) - 🔢 Whether to enable autoscaling for shards
  - `CONFIG_LOGGING_LEVEL` (default: `debug`) - 📜 Log level for the bot (e.g., debug, info, warn, error)
  - `CONFIG_LOGGING_PRETTY` (default: `true`) - ✨ Enable pretty-printed logs for human readability
  - `CONFIG_LOGGING_COLORS` (default: `true`) - 🌈 Add colors to logs for better visibility

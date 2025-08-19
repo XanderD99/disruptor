@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/pkg/logging"
@@ -11,13 +12,7 @@ import (
 //go:generate envdoc -output ../../docs/ENVIRONMENT.md -types * -files ./cmd/disruptor/config.go -dir ../..  -env-prefix CONFIG_ -tag-default default
 //go:generate envdoc -output ../../configs/.env.example -types * -files ./cmd/disruptor/config.go -dir ../..  -env-prefix CONFIG_ -tag-default default -format dotenv
 type Config struct {
-	// 🔑 The bot token used to connect to Discord
-	Token string `env:"TOKEN,required"`
-
-	// 🔢 Shard ID to use, 0 for automatic assignment
-	ShardID int `env:"SHARD_ID" default:"0"`
-	// 🔢 Total number of shards to use, 0 for automatic calculation
-	ShardCount int `env:"SHARD_COUNT" default:"1"`
+	Disruptor disruptor.Config
 
 	// 📜 Logging configuration for the bot
 	Logging logging.Config `envPrefix:"LOGGING_"`

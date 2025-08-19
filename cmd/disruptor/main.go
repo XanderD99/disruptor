@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/disgoorg/disgo/bot"
-	"github.com/disgoorg/disgo/cache"
-	"github.com/disgoorg/disgo/gateway"
-	"github.com/disgoorg/disgo/sharding"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
@@ -23,6 +20,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
+	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
 	"github.com/XanderD99/disruptor/pkg/slogbun"
@@ -132,24 +130,7 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleManager *scheduler.Manager) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
-	session, err := disruptor.New(cfg.Token,
-		bot.WithShardManagerConfigOpts(
-			sharding.WithLogger(logger),
-			sharding.WithShardCount(2),
-			sharding.WithShardIDs(0, 1),
-			sharding.WithAutoScaling(true),
-			sharding.WithGatewayConfigOpts(
-				gateway.WithIntents(gateway.IntentGuilds, gateway.IntentGuildVoiceStates, gateway.IntentGuildExpressions),
-				gateway.WithCompress(true),
-				gateway.WithPresenceOpts(
-					gateway.WithListeningActivity("to your commands"),
-				),
-			),
-		),
-		bot.WithCacheConfigOpts(
-			cache.WithCaches(cache.FlagsAll),
-		),
-	)
+	session, err := disruptor.New(cfg.Disruptor)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Discord bot: %w", err)
 	}
@@ -157,6 +138,10 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 
 	lava := lavalink.New(cfg.LavalinkNodes, session, logger)
 	group.AddProcessWithCtx("disgolink", lava.Start, false, nil)
+
+	scheduleManager.RegisterBuilder(handlers.HandlerTypeRandomVoiceJoin, func(interval time.Duration) *scheduler.Scheduler {
+		return scheduler.NewScheduler(interval, handlers.NewRandomVoiceJoinHandler(session, db))
+	})
 
 	err = session.AddCommands(
 		commands.Play(lava),
