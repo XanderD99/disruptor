@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"github.com/XanderD99/disruptor/internal/lavalink"
@@ -8,8 +8,8 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
-//go:generate envdoc -output README.md -types * -files ./internal/config/config.go -dir ../..  -env-prefix CONFIG_ -tag-default default
-//go:generate envdoc -output ../../configs/.env.example -types * -files ./internal/config/config.go -dir ../..  -env-prefix CONFIG_ -tag-default default -format dotenv
+//go:generate envdoc -output ../../docs/ENVIRONMENT.md -types * -files ./cmd/disruptor/config.go -dir ../..  -env-prefix CONFIG_ -tag-default default
+//go:generate envdoc -output ../../configs/.env.example -types * -files ./cmd/disruptor/config.go -dir ../..  -env-prefix CONFIG_ -tag-default default -format dotenv
 type Config struct {
 	// 🔑 The bot token used to connect to Discord
 	Token string `env:"TOKEN,required"`

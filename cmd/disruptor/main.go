@@ -17,7 +17,6 @@ import (
 	"github.com/uptrace/bun/driver/sqliteshim"
 
 	"github.com/XanderD99/disruptor/internal/commands"
-	"github.com/XanderD99/disruptor/internal/config"
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/listeners"
@@ -33,7 +32,7 @@ func main() {
 	// Note: Context cancellation and graceful shutdown are handled by processes.Manager.
 	// This keeps main.go focused on initialization and wiring.
 
-	cfg, err := config.Load()
+	cfg, err := Load()
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)
 	}
@@ -75,7 +74,7 @@ func main() {
 	}
 }
 
-func initServerGroup(cfg config.Config) (*processes.ProcessGroup, error) {
+func initServerGroup(cfg Config) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("servers", time.Second*5)
 
 	// Initialize metrics server
@@ -99,7 +98,7 @@ func initSchedulers(logger *slog.Logger) (*processes.ProcessGroup, *scheduler.Ma
 	return group, voiceAudioScheduler, nil
 }
 
-func initDatabase(cfg config.Config, logger *slog.Logger) (*processes.ProcessGroup, *bun.DB, error) {
+func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bun.DB, error) {
 	group := processes.NewGroup("database", time.Second*5)
 
 	// Initialize database connection
@@ -130,7 +129,7 @@ func initDatabase(cfg config.Config, logger *slog.Logger) (*processes.ProcessGro
 	return group, database, nil
 }
 
-func initDiscordProcesses(cfg config.Config, logger *slog.Logger, db *bun.DB, scheduleManager *scheduler.Manager) (*processes.ProcessGroup, error) {
+func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleManager *scheduler.Manager) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
 	session, err := disruptor.New(cfg.Token,
