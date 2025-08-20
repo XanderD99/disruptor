@@ -5,7 +5,9 @@ import (
 	"log/slog"
 	"os"
 
+	slogdiscord "github.com/betrayy/slog-discord"
 	"github.com/lmittmann/tint"
+	slogmulti "github.com/samber/slog-multi"
 )
 
 type Config struct {
@@ -17,26 +19,49 @@ type Config struct {
 	Colors bool `env:"COLORS" default:"true"`
 	// 🗂️ Include short file paths in log messages for debugging
 	AddSource bool `env:"SOURCE" default:"false"`
+
+	Discord struct {
+		// 📡 Discord webhook URL for sending log messages
+		Webhook string `env:"WEBHOOK"`
+
+		// 📉 Minimum log level for Discord messages, defaults to warn level
+		MinLevel slog.Level `env:"MIN_LEVEL" default:"warn"`
+
+		// 📦 Whether to wait for Discord messages to be sent before continuing
+		Sync bool `env:"SYNC" default:"false"`
+	} `envPrefix:"DISCORD_"`
 }
 
 func New(cfg Config) (*slog.Logger, error) {
-	var handler slog.Handler
-
 	opts := &slog.HandlerOptions{
 		Level:     cfg.Level,
 		AddSource: cfg.AddSource,
 	}
 
-	if cfg.PrettyPrint {
-		handler = tint.NewHandler(os.Stdout, &tint.Options{
-			AddSource: cfg.AddSource,
-			Level:     cfg.Level,
-		})
-	} else {
-		handler = slog.NewJSONHandler(os.Stdout, opts)
+	handlers := make([]slog.Handler, 0)
+
+	if cfg.Discord.Webhook != "" {
+		discordHandler, err := slogdiscord.NewDiscordHandler(
+			cfg.Discord.Webhook,
+			slogdiscord.WithMinLevel(cfg.Discord.MinLevel),
+			slogdiscord.WithSyncMode(cfg.Discord.Sync),
+		)
+		if err != nil {
+			return nil, err
+		}
+		handlers = append(handlers, discordHandler)
 	}
 
-	logger := slog.New(handler)
+	if cfg.PrettyPrint {
+		handlers = append(handlers, tint.NewHandler(os.Stdout, &tint.Options{
+			AddSource: cfg.AddSource,
+			Level:     cfg.Level,
+		}))
+	} else {
+		handlers = append(handlers, slog.NewJSONHandler(os.Stdout, opts))
+	}
+
+	logger := slog.New(slogmulti.Fanout(handlers...))
 	slog.SetDefault(logger) // set global logger
 
 	return logger, nil
