@@ -12,7 +12,7 @@ All metrics use the `disruptor_` namespace prefix and are organized into subsyst
 - Name: `disruptor_database_query_duration_seconds`
 - Type: Histogram
 - Labels: `operation` (select, insert, update, delete, create_table, drop_table), `table`
-- Buckets: [.001, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
+- Buckets: Default Prometheus buckets [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
 - Description: Duration of database queries in seconds
 
 **Query Count**
@@ -33,7 +33,7 @@ All metrics use the `disruptor_` namespace prefix and are organized into subsyst
 - Name: `disruptor_scheduler_job_duration_seconds`
 - Type: Histogram
 - Labels: `handler_type` (random_voice_join), `status` (success, error)
-- Buckets: [.01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10, 30, 60]
+- Buckets: Default Prometheus buckets [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
 - Description: Duration of scheduler job execution in seconds
 
 **Job Count**
@@ -77,7 +77,7 @@ All metrics use the `disruptor_` namespace prefix and are organized into subsyst
 - Name: `disruptor_audio_processing_duration_seconds`
 - Type: Histogram
 - Labels: `operation` (cleanup), `guild_id`
-- Buckets: [.001, .005, .01, .025, .05, .1, .25, .5, 1, 2, 5]
+- Buckets: Default Prometheus buckets [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
 - Description: Duration of audio processing operations in seconds
 
 ### Discord API Metrics (`disruptor_discord_api_*`)
@@ -92,7 +92,7 @@ All metrics use the `disruptor_` namespace prefix and are organized into subsyst
 - Name: `disruptor_discord_api_request_duration_seconds`
 - Type: Histogram
 - Labels: `endpoint`, `method`
-- Buckets: [.001, .005, .01, .025, .05, .1, .25, .5, 1, 2, 5]
+- Buckets: Default Prometheus buckets [.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10]
 - Description: Duration of Discord API requests in seconds
 
 ### System Metrics (`disruptor_system_*`)
