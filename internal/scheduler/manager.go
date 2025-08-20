@@ -139,7 +139,7 @@ func (m *Manager) AddScheduler(key string, interval time.Duration) error {
 
 	schedKey := fmt.Sprintf("%s_%d", key, interval.Milliseconds())
 	if _, exists := m.schedulers[schedKey]; exists {
-		m.logger.Warn("scheduler with this interval already exists", slog.String("key", key), slog.Duration("interval", interval))
+		m.logger.Info("scheduler with this interval already exists", slog.String("key", key), slog.Duration("interval", interval))
 		return nil
 	}
 
