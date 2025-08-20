@@ -1,9 +1,13 @@
 package metrics
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // DiscordAPIMetrics provides methods for recording Discord API-related metrics
@@ -18,12 +22,21 @@ func NewDiscordAPIMetrics() *DiscordAPIMetrics {
 func (d *DiscordAPIMetrics) RecordAPIRequest(endpoint, method string, statusCode int, duration time.Duration) {
 	status := strconv.Itoa(statusCode)
 
+	ctx := context.Background()
+	
 	// Record request count
-	DiscordAPIRequests.WithLabelValues(endpoint, method, status).Inc()
+	DiscordAPIRequests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("endpoint", endpoint),
+		attribute.String("method", method),
+		attribute.String("status_code", status),
+	))
 
 	// Record latency only for successful requests to avoid skewing metrics
 	if statusCode >= 200 && statusCode < 400 {
-		DiscordAPILatency.WithLabelValues(endpoint, method).Observe(duration.Seconds())
+		DiscordAPILatency.Record(ctx, duration.Seconds(), metric.WithAttributes(
+			attribute.String("endpoint", endpoint),
+			attribute.String("method", method),
+		))
 	}
 }
 

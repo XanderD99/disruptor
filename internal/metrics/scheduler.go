@@ -3,6 +3,9 @@ package metrics
 import (
 	"context"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // SchedulerMetrics provides methods for recording scheduler-related metrics
@@ -20,26 +23,41 @@ func (s *SchedulerMetrics) RecordJobExecution(handlerType string, duration time.
 		status = "error"
 	}
 
+	ctx := context.Background()
+
 	// Record duration
-	SchedulerJobDuration.WithLabelValues(handlerType, status).Observe(duration.Seconds())
+	SchedulerJobDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(
+		attribute.String("handler_type", handlerType),
+		attribute.String("status", status),
+	))
 
 	// Record job count
-	SchedulerJobTotal.WithLabelValues(handlerType, status).Inc()
+	SchedulerJobTotal.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("handler_type", handlerType),
+		attribute.String("status", status),
+	))
 }
 
 // RecordActiveJob increments the active job counter for a handler type
 func (s *SchedulerMetrics) RecordActiveJob(handlerType string) {
-	SchedulerActiveJobs.WithLabelValues(handlerType).Inc()
+	ctx := context.Background()
+	SchedulerActiveJobs.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("handler_type", handlerType),
+	))
 }
 
 // RecordJobComplete decrements the active job counter for a handler type
 func (s *SchedulerMetrics) RecordJobComplete(handlerType string) {
-	SchedulerActiveJobs.WithLabelValues(handlerType).Dec()
+	ctx := context.Background()
+	SchedulerActiveJobs.Add(ctx, -1, metric.WithAttributes(
+		attribute.String("handler_type", handlerType),
+	))
 }
 
 // UpdateQueueDepth updates the scheduler queue depth metric
-func (s *SchedulerMetrics) UpdateQueueDepth(depth float64) {
-	SchedulerQueueDepth.Set(depth)
+func (s *SchedulerMetrics) UpdateQueueDepth(depth int64) {
+	ctx := context.Background()
+	SchedulerQueueDepth.Add(ctx, depth)
 }
 
 // JobExecutionTimer provides a timer for measuring job execution duration

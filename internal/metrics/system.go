@@ -2,8 +2,10 @@ package metrics
 
 import (
 	"context"
-	"runtime"
 	"time"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // SystemMetrics provides methods for recording system-level metrics
@@ -14,45 +16,27 @@ func NewSystemMetrics() *SystemMetrics {
 	return &SystemMetrics{}
 }
 
-// CollectSystemMetrics collects and updates system metrics
+// CollectSystemMetrics is no longer needed as we use observable gauges
+// The system metrics are automatically collected via OpenTelemetry callbacks
 func (s *SystemMetrics) CollectSystemMetrics() {
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-
-	// Update goroutine count
-	GoroutineCount.Set(float64(runtime.NumGoroutine()))
-
-	// Update memory metrics
-	MemoryUsage.WithLabelValues("heap_alloc").Set(float64(memStats.HeapAlloc))
-	MemoryUsage.WithLabelValues("heap_sys").Set(float64(memStats.HeapSys))
-	MemoryUsage.WithLabelValues("heap_idle").Set(float64(memStats.HeapIdle))
-	MemoryUsage.WithLabelValues("heap_inuse").Set(float64(memStats.HeapInuse))
-	MemoryUsage.WithLabelValues("heap_released").Set(float64(memStats.HeapReleased))
-	MemoryUsage.WithLabelValues("stack_inuse").Set(float64(memStats.StackInuse))
-	MemoryUsage.WithLabelValues("stack_sys").Set(float64(memStats.StackSys))
-	MemoryUsage.WithLabelValues("total_alloc").Set(float64(memStats.TotalAlloc))
-	MemoryUsage.WithLabelValues("sys").Set(float64(memStats.Sys))
+	// This method is kept for backward compatibility but does nothing
+	// System metrics are now collected automatically via observable gauges
 }
 
-// StartSystemMetricsCollection starts a goroutine that periodically collects system metrics
+// StartSystemMetricsCollection is no longer needed with observable gauges
+// but kept for backward compatibility
 func (s *SystemMetrics) StartSystemMetricsCollection(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	// Collect initial metrics
-	s.CollectSystemMetrics()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.CollectSystemMetrics()
-		}
-	}
+	// Observable gauges in OpenTelemetry automatically collect metrics
+	// when the metrics are scraped, so no active collection is needed.
+	// This method will just wait for context cancellation to maintain
+	// backward compatibility with existing code that expects this method.
+	<-ctx.Done()
 }
 
 // RecordGuildCount records the total number of guilds (for compatibility with existing metrics)
-func (s *SystemMetrics) RecordGuildCount(shardID string, count float64) {
-	TotalGuilds.WithLabelValues(shardID).Set(count)
+func (s *SystemMetrics) RecordGuildCount(shardID string, count int64) {
+	ctx := context.Background()
+	TotalGuilds.Add(ctx, count, metric.WithAttributes(
+		attribute.String("shard", shardID),
+	))
 }

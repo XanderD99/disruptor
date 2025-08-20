@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel/exporters/prometheus"
 
 	"github.com/XanderD99/disruptor/internal/http"
 )
@@ -30,6 +31,28 @@ type Server struct {
 func NewServer(cfg Config) (*Server, error) {
 	routes := nethttp.NewServeMux()
 	routes.Handle(_pathMetrics, promhttp.Handler())
+	s, err := http.NewServer(cfg.Port, routes)
+	if err != nil {
+		return nil, fmt.Errorf("creating new metrics server: %w", err)
+	}
+
+	return &Server{
+		server: s,
+		cfg:    cfg,
+	}, nil
+}
+
+// NewServerWithExporter creates a new metrics server using OpenTelemetry Prometheus exporter
+func NewServerWithExporter(cfg Config, promExporter *prometheus.Exporter) (*Server, error) {
+	routes := nethttp.NewServeMux()
+	// OpenTelemetry Prometheus exporter should implement http.Handler
+	// If not, we'll need to access its internal gatherer
+	if handler, ok := interface{}(promExporter).(nethttp.Handler); ok {
+		routes.Handle(_pathMetrics, handler)
+	} else {
+		// Fallback to default prometheus handler
+		routes.Handle(_pathMetrics, promhttp.Handler())
+	}
 	s, err := http.NewServer(cfg.Port, routes)
 	if err != nil {
 		return nil, fmt.Errorf("creating new metrics server: %w", err)

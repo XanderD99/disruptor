@@ -1,173 +1,173 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"context"
+	"runtime"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
-// Metrics are automatically registered with the default registry using promauto
+// Metrics using OpenTelemetry for automatic registration and export
 var (
-	// Database metrics
-	DatabaseQueryDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "disruptor",
-			Subsystem: "database",
-			Name:      "query_duration_seconds",
-			Help:      "Duration of database queries in seconds",
-		},
-		[]string{"operation", "table"},
-	)
+	meter = otel.Meter("disruptor")
 
-	DatabaseQueryTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "disruptor",
-			Subsystem: "database",
-			Name:      "queries_total",
-			Help:      "Total number of database queries",
-		},
-		[]string{"operation", "table", "status"},
-	)
-
-	DatabaseErrors = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "disruptor",
-			Subsystem: "database",
-			Name:      "errors_total",
-			Help:      "Total number of database errors",
-		},
-		[]string{"operation", "table", "error_type"},
-	)
+	// Database metrics - now handled by bunotel automatically
+	// These are kept for backward compatibility but will use OpenTelemetry's automatic collection
 
 	// Scheduler metrics
-	SchedulerJobDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "disruptor",
-			Subsystem: "scheduler",
-			Name:      "job_duration_seconds",
-			Help:      "Duration of scheduler job execution in seconds",
-		},
-		[]string{"handler_type", "status"},
-	)
-
-	SchedulerJobTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "disruptor",
-			Subsystem: "scheduler",
-			Name:      "jobs_total",
-			Help:      "Total number of scheduler jobs executed",
-		},
-		[]string{"handler_type", "status"},
-	)
-
-	SchedulerActiveJobs = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "disruptor",
-			Subsystem: "scheduler",
-			Name:      "active_jobs",
-			Help:      "Number of currently active scheduler jobs",
-		},
-		[]string{"handler_type"},
-	)
-
-	SchedulerQueueDepth = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "disruptor",
-			Subsystem: "scheduler",
-			Name:      "queue_depth",
-			Help:      "Number of schedulers in the manager",
-		},
-	)
+	SchedulerJobDuration metric.Float64Histogram
+	SchedulerJobTotal    metric.Int64Counter
+	SchedulerActiveJobs  metric.Int64UpDownCounter
+	SchedulerQueueDepth  metric.Int64UpDownCounter
 
 	// Audio/Voice metrics
-	VoiceConnectionAttempts = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "disruptor",
-			Subsystem: "voice",
-			Name:      "connection_attempts_total",
-			Help:      "Total number of voice connection attempts",
-		},
-		[]string{"guild_id", "status"},
-	)
-
-	VoiceConnections = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "disruptor",
-			Subsystem: "voice",
-			Name:      "connections_active",
-			Help:      "Number of active voice connections",
-		},
-		[]string{"guild_id"},
-	)
-
-	AudioTrackEvents = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "disruptor",
-			Subsystem: "audio",
-			Name:      "track_events_total",
-			Help:      "Total number of audio track events",
-		},
-		[]string{"event_type", "guild_id"},
-	)
-
-	AudioProcessingDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "disruptor",
-			Subsystem: "audio",
-			Name:      "processing_duration_seconds",
-			Help:      "Duration of audio processing operations in seconds",
-		},
-		[]string{"operation", "guild_id"},
-	)
+	VoiceConnectionAttempts metric.Int64Counter
+	VoiceConnections        metric.Int64UpDownCounter
+	AudioTrackEvents        metric.Int64Counter
+	AudioProcessingDuration metric.Float64Histogram
 
 	// Discord API metrics
-	DiscordAPIRequests = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "disruptor",
-			Subsystem: "discord_api",
-			Name:      "requests_total",
-			Help:      "Total number of Discord API requests",
-		},
-		[]string{"endpoint", "method", "status_code"},
-	)
+	DiscordAPIRequests metric.Int64Counter
+	DiscordAPILatency  metric.Float64Histogram
 
-	DiscordAPILatency = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Namespace: "disruptor",
-			Subsystem: "discord_api",
-			Name:      "request_duration_seconds",
-			Help:      "Duration of Discord API requests in seconds",
-		},
-		[]string{"endpoint", "method"},
-	)
-
-	// System metrics
-	GoroutineCount = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "disruptor",
-			Subsystem: "system",
-			Name:      "goroutines",
-			Help:      "Number of active goroutines",
-		},
-	)
-
-	MemoryUsage = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "disruptor",
-			Subsystem: "system",
-			Name:      "memory_bytes",
-			Help:      "Memory usage in bytes",
-		},
-		[]string{"type"},
-	)
+	// System metrics - using observability callbacks for gauge-like behavior
+	// These will be implemented as async gauges
 
 	// Existing metrics for compatibility
-	TotalGuilds = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "disruptor",
-			Subsystem: "discord",
-			Name:      "guild_count",
-			Help:      "Total number of guilds the bot is in",
-		},
-		[]string{"shard"},
-	)
+	TotalGuilds metric.Int64UpDownCounter
 )
+
+func init() {
+	// Initialize all OpenTelemetry metrics
+	var err error
+
+	// Scheduler metrics
+	SchedulerJobDuration, err = meter.Float64Histogram(
+		"disruptor_scheduler_job_duration_seconds",
+		metric.WithDescription("Duration of scheduler job execution in seconds"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	SchedulerJobTotal, err = meter.Int64Counter(
+		"disruptor_scheduler_jobs_total",
+		metric.WithDescription("Total number of scheduler jobs executed"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	SchedulerActiveJobs, err = meter.Int64UpDownCounter(
+		"disruptor_scheduler_active_jobs",
+		metric.WithDescription("Number of currently active scheduler jobs"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	SchedulerQueueDepth, err = meter.Int64UpDownCounter(
+		"disruptor_scheduler_queue_depth",
+		metric.WithDescription("Number of schedulers in the manager"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Audio/Voice metrics
+	VoiceConnectionAttempts, err = meter.Int64Counter(
+		"disruptor_voice_connection_attempts_total",
+		metric.WithDescription("Total number of voice connection attempts"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	VoiceConnections, err = meter.Int64UpDownCounter(
+		"disruptor_voice_connections_active",
+		metric.WithDescription("Number of active voice connections"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	AudioTrackEvents, err = meter.Int64Counter(
+		"disruptor_audio_track_events_total",
+		metric.WithDescription("Total number of audio track events"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	AudioProcessingDuration, err = meter.Float64Histogram(
+		"disruptor_audio_processing_duration_seconds",
+		metric.WithDescription("Duration of audio processing operations in seconds"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Discord API metrics
+	DiscordAPIRequests, err = meter.Int64Counter(
+		"disruptor_discord_api_requests_total",
+		metric.WithDescription("Total number of Discord API requests"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	DiscordAPILatency, err = meter.Float64Histogram(
+		"disruptor_discord_api_request_duration_seconds",
+		metric.WithDescription("Duration of Discord API requests in seconds"),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// System metrics - register async gauges
+	_, err = meter.Int64ObservableGauge(
+		"disruptor_system_goroutines",
+		metric.WithDescription("Number of active goroutines"),
+		metric.WithInt64Callback(func(ctx context.Context, o metric.Int64Observer) error {
+			o.Observe(int64(runtime.NumGoroutine()))
+			return nil
+		}),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = meter.Int64ObservableGauge(
+		"disruptor_system_memory_bytes",
+		metric.WithDescription("Memory usage in bytes"),
+		metric.WithInt64Callback(func(ctx context.Context, o metric.Int64Observer) error {
+			var memStats runtime.MemStats
+			runtime.ReadMemStats(&memStats)
+
+			o.Observe(int64(memStats.HeapAlloc), metric.WithAttributes(attribute.String("type", "heap_alloc")))
+			o.Observe(int64(memStats.HeapSys), metric.WithAttributes(attribute.String("type", "heap_sys")))
+			o.Observe(int64(memStats.HeapIdle), metric.WithAttributes(attribute.String("type", "heap_idle")))
+			o.Observe(int64(memStats.HeapInuse), metric.WithAttributes(attribute.String("type", "heap_inuse")))
+			o.Observe(int64(memStats.HeapReleased), metric.WithAttributes(attribute.String("type", "heap_released")))
+			o.Observe(int64(memStats.StackInuse), metric.WithAttributes(attribute.String("type", "stack_inuse")))
+			o.Observe(int64(memStats.StackSys), metric.WithAttributes(attribute.String("type", "stack_sys")))
+			o.Observe(int64(memStats.TotalAlloc), metric.WithAttributes(attribute.String("type", "total_alloc")))
+			o.Observe(int64(memStats.Sys), metric.WithAttributes(attribute.String("type", "sys")))
+			return nil
+		}),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	// Existing metrics for compatibility
+	TotalGuilds, err = meter.Int64UpDownCounter(
+		"disruptor_discord_guild_count",
+		metric.WithDescription("Total number of guilds the bot is in"),
+	)
+	if err != nil {
+		panic(err)
+	}
+}

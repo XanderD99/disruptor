@@ -28,7 +28,7 @@ func NewDiscordCollector(session DiscordSessionInterface) *DiscordCollector {
 func (c *DiscordCollector) CollectGuildMetrics() {
 	if c.session != nil {
 		// Update guild count using the new metrics registry
-		guildCount := float64(c.session.GuildsLen())
+		guildCount := int64(c.session.GuildsLen())
 		c.metrics.RecordGuildCount("0", guildCount) // Using "0" as default shard ID
 	}
 }

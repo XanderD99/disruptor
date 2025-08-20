@@ -159,7 +159,7 @@ func (m *Manager) AddScheduler(key string, interval time.Duration) error {
 	m.schedulers[schedKey] = group
 
 	// Update queue depth metrics
-	m.schedulerMetrics.UpdateQueueDepth(float64(len(m.schedulers)))
+	m.schedulerMetrics.UpdateQueueDepth(int64(len(m.schedulers)))
 
 	m.logger.Info("new interval group added", slog.String("key", key), slog.Duration("interval", interval))
 	if m.ctx != nil {

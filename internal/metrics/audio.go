@@ -1,9 +1,12 @@
 package metrics
 
 import (
+	"context"
 	"time"
 
 	"github.com/disgoorg/snowflake/v2"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // AudioMetrics provides methods for recording audio and voice-related metrics
@@ -21,27 +24,45 @@ func (a *AudioMetrics) RecordVoiceConnectionAttempt(guildID snowflake.ID, succes
 		status = "error"
 	}
 
-	VoiceConnectionAttempts.WithLabelValues(guildID.String(), status).Inc()
+	ctx := context.Background()
+	VoiceConnectionAttempts.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("guild_id", guildID.String()),
+		attribute.String("status", status),
+	))
 }
 
 // RecordVoiceConnectionActive records an active voice connection
 func (a *AudioMetrics) RecordVoiceConnectionActive(guildID snowflake.ID) {
-	VoiceConnections.WithLabelValues(guildID.String()).Inc()
+	ctx := context.Background()
+	VoiceConnections.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("guild_id", guildID.String()),
+	))
 }
 
 // RecordVoiceConnectionClosed records a closed voice connection
 func (a *AudioMetrics) RecordVoiceConnectionClosed(guildID snowflake.ID) {
-	VoiceConnections.WithLabelValues(guildID.String()).Dec()
+	ctx := context.Background()
+	VoiceConnections.Add(ctx, -1, metric.WithAttributes(
+		attribute.String("guild_id", guildID.String()),
+	))
 }
 
 // RecordTrackEvent records audio track events (start, end, etc.)
 func (a *AudioMetrics) RecordTrackEvent(eventType string, guildID snowflake.ID) {
-	AudioTrackEvents.WithLabelValues(eventType, guildID.String()).Inc()
+	ctx := context.Background()
+	AudioTrackEvents.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("event_type", eventType),
+		attribute.String("guild_id", guildID.String()),
+	))
 }
 
 // RecordAudioProcessingDuration records the duration of audio processing operations
 func (a *AudioMetrics) RecordAudioProcessingDuration(operation string, guildID snowflake.ID, duration time.Duration) {
-	AudioProcessingDuration.WithLabelValues(operation, guildID.String()).Observe(duration.Seconds())
+	ctx := context.Background()
+	AudioProcessingDuration.Record(ctx, duration.Seconds(), metric.WithAttributes(
+		attribute.String("operation", operation),
+		attribute.String("guild_id", guildID.String()),
+	))
 }
 
 // AudioProcessingTimer provides a timer for measuring audio processing duration
@@ -75,6 +96,10 @@ func (a *AudioMetrics) RecordVoiceStateUpdate(guildID snowflake.ID, success bool
 		status = "error"
 	}
 
+	ctx := context.Background()
 	// Use a generic "voice_state_update" operation for tracking
-	VoiceConnectionAttempts.WithLabelValues(guildID.String(), status).Inc()
+	VoiceConnectionAttempts.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("guild_id", guildID.String()),
+		attribute.String("status", status),
+	))
 }

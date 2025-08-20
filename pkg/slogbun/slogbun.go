@@ -104,6 +104,7 @@ func WithLogger(logger *slog.Logger) Option {
 }
 
 // WithMetrics enables database metrics collection
+// DEPRECATED: Use Bun's OpenTelemetry integration instead
 func WithMetrics(metricsHook DatabaseMetricsHook) Option {
 	return func(h *QueryHook) {
 		h.metricsHook = metricsHook
