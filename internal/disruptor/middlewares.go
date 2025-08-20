@@ -17,7 +17,7 @@ var loggerMiddleware handler.Middleware = func(next handler.Handler) handler.Han
 		// Start timer for interaction handling
 		discordMetrics := metrics.NewDiscordAPIMetrics()
 		startTime := time.Now()
-		
+
 		logger := event.Client().Logger().With(
 			slog.Group("interaction", slog.Any("id", event.Interaction.ID())),
 			slog.Group("channel", slog.Any("id", event.Channel().ID())),
@@ -30,7 +30,7 @@ var loggerMiddleware handler.Middleware = func(next handler.Handler) handler.Han
 		logger.DebugContext(event.Ctx, "handling interaction", slog.Any("interaction", event.Interaction), slog.Any("variables", event.Vars))
 
 		err := next(event)
-		
+
 		// Record interaction metrics
 		duration := time.Since(startTime)
 		statusCode := 200 // Assume success
@@ -40,14 +40,14 @@ var loggerMiddleware handler.Middleware = func(next handler.Handler) handler.Han
 		} else {
 			logger.InfoContext(event.Ctx, "interaction handled successfully")
 		}
-		
+
 		// Record metrics based on interaction type
 		endpoint := "interaction"
 		if event.Interaction.Type() == discord.InteractionTypeApplicationCommand {
 			endpoint = "slash_command"
 		}
 		discordMetrics.RecordAPIRequest(endpoint, "POST", statusCode, duration)
-		
+
 		return err
 	}
 }

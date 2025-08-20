@@ -37,7 +37,7 @@ func (c *DiscordCollector) CollectGuildMetrics() {
 func (c *DiscordCollector) StartCollection(ctx context.Context) error {
 	// Collect initial metrics
 	c.CollectGuildMetrics()
-	
+
 	// Note: In a production system, you might want to collect these metrics
 	// periodically, but for now we'll collect them on-demand
 	return nil

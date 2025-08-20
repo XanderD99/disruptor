@@ -7,15 +7,11 @@ import (
 )
 
 // AudioMetrics provides methods for recording audio and voice-related metrics
-type AudioMetrics struct {
-	registry *Registry
-}
+type AudioMetrics struct{}
 
 // NewAudioMetrics creates a new audio metrics instance
 func NewAudioMetrics() *AudioMetrics {
-	return &AudioMetrics{
-		registry: GetRegistry(),
-	}
+	return &AudioMetrics{}
 }
 
 // RecordVoiceConnectionAttempt records a voice connection attempt
@@ -24,28 +20,28 @@ func (a *AudioMetrics) RecordVoiceConnectionAttempt(guildID snowflake.ID, succes
 	if !success {
 		status = "error"
 	}
-	
-	a.registry.VoiceConnectionAttempts.WithLabelValues(guildID.String(), status).Inc()
+
+	VoiceConnectionAttempts.WithLabelValues(guildID.String(), status).Inc()
 }
 
 // RecordVoiceConnectionActive records an active voice connection
 func (a *AudioMetrics) RecordVoiceConnectionActive(guildID snowflake.ID) {
-	a.registry.VoiceConnections.WithLabelValues(guildID.String()).Inc()
+	VoiceConnections.WithLabelValues(guildID.String()).Inc()
 }
 
 // RecordVoiceConnectionClosed records a closed voice connection
 func (a *AudioMetrics) RecordVoiceConnectionClosed(guildID snowflake.ID) {
-	a.registry.VoiceConnections.WithLabelValues(guildID.String()).Dec()
+	VoiceConnections.WithLabelValues(guildID.String()).Dec()
 }
 
 // RecordTrackEvent records audio track events (start, end, etc.)
 func (a *AudioMetrics) RecordTrackEvent(eventType string, guildID snowflake.ID) {
-	a.registry.AudioTrackEvents.WithLabelValues(eventType, guildID.String()).Inc()
+	AudioTrackEvents.WithLabelValues(eventType, guildID.String()).Inc()
 }
 
 // RecordAudioProcessingDuration records the duration of audio processing operations
 func (a *AudioMetrics) RecordAudioProcessingDuration(operation string, guildID snowflake.ID, duration time.Duration) {
-	a.registry.AudioProcessingDuration.WithLabelValues(operation, guildID.String()).Observe(duration.Seconds())
+	AudioProcessingDuration.WithLabelValues(operation, guildID.String()).Observe(duration.Seconds())
 }
 
 // AudioProcessingTimer provides a timer for measuring audio processing duration
@@ -78,7 +74,7 @@ func (a *AudioMetrics) RecordVoiceStateUpdate(guildID snowflake.ID, success bool
 	if !success {
 		status = "error"
 	}
-	
+
 	// Use a generic "voice_state_update" operation for tracking
-	a.registry.VoiceConnectionAttempts.WithLabelValues(guildID.String(), status).Inc()
+	VoiceConnectionAttempts.WithLabelValues(guildID.String(), status).Inc()
 }

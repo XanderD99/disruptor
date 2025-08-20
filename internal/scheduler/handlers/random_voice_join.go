@@ -86,15 +86,15 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild snowfla
 
 	// Select a random channel
 	channelID := randomChannelID(channels)
-	
+
 	// Record voice connection attempt
 	audioMetrics := metrics.NewAudioMetrics()
-	
+
 	if err := session.UpdateVoiceState(ctx, guild, &channelID); err != nil {
 		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
-	
+
 	audioMetrics.RecordVoiceConnectionAttempt(guild, true)
 	return nil
 }
@@ -111,15 +111,15 @@ func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, 
 	// Record Discord API call metrics
 	discordMetrics := metrics.NewDiscordAPIMetrics()
 	timer := discordMetrics.NewDiscordAPITimer("/guilds/{guild.id}/channels", "GET")
-	
+
 	channels, err := session.Rest().GetGuildChannels(guildID, rest.WithCtx(ctx))
-	
+
 	statusCode := 200
 	if err != nil {
 		statusCode = 500 // Assume server error for failed requests
 	}
 	timer.Finish(statusCode)
-	
+
 	if err != nil {
 		return nil, err
 	}

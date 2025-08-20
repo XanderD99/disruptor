@@ -50,7 +50,7 @@ type Manager struct {
 	builders   map[string]SchedulerBuilder
 
 	// Dependencies
-	logger          *slog.Logger
+	logger           *slog.Logger
 	schedulerMetrics *metrics.SchedulerMetrics
 
 	mu sync.RWMutex

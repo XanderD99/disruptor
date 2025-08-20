@@ -9,15 +9,11 @@ import (
 )
 
 // DatabaseMetricsHook implements bun.QueryHook to collect database metrics
-type DatabaseMetricsHook struct {
-	registry *Registry
-}
+type DatabaseMetricsHook struct{}
 
 // NewDatabaseMetricsHook creates a new database metrics hook
 func NewDatabaseMetricsHook() *DatabaseMetricsHook {
-	return &DatabaseMetricsHook{
-		registry: GetRegistry(),
-	}
+	return &DatabaseMetricsHook{}
 }
 
 // BeforeQuery is called before query execution
@@ -40,19 +36,19 @@ func (h *DatabaseMetricsHook) AfterQuery(ctx context.Context, event *bun.QueryEv
 	table := h.getTable(event)
 
 	// Record duration histogram
-	h.registry.DatabaseQueryDuration.WithLabelValues(operation, table).Observe(duration)
+	DatabaseQueryDuration.WithLabelValues(operation, table).Observe(duration)
 
 	// Record query count
 	status := "success"
 	if event.Err != nil {
 		status = "error"
-		
+
 		// Record error metrics
 		errorType := h.getErrorType(event.Err)
-		h.registry.DatabaseErrors.WithLabelValues(operation, table, errorType).Inc()
+		DatabaseErrors.WithLabelValues(operation, table, errorType).Inc()
 	}
 
-	h.registry.DatabaseQueryTotal.WithLabelValues(operation, table, status).Inc()
+	DatabaseQueryTotal.WithLabelValues(operation, table, status).Inc()
 }
 
 // getOperation extracts the operation type from the query event
@@ -134,12 +130,12 @@ func (h *DatabaseMetricsHook) getTable(event *bun.QueryEvent) string {
 // parseTableFromQuery attempts to extract table name from raw SQL
 func (h *DatabaseMetricsHook) parseTableFromQuery(query string) string {
 	query = strings.TrimSpace(strings.ToLower(query))
-	
+
 	// Simple heuristics for common patterns
 	if strings.Contains(query, "guilds") {
 		return "guilds"
 	}
-	
+
 	// Could add more sophisticated parsing here if needed
 	return "unknown"
 }
@@ -151,7 +147,7 @@ func (h *DatabaseMetricsHook) getErrorType(err error) string {
 	}
 
 	errStr := strings.ToLower(err.Error())
-	
+
 	// Categorize common error types
 	switch {
 	case strings.Contains(errStr, "timeout"):

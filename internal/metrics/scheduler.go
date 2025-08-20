@@ -6,15 +6,11 @@ import (
 )
 
 // SchedulerMetrics provides methods for recording scheduler-related metrics
-type SchedulerMetrics struct {
-	registry *Registry
-}
+type SchedulerMetrics struct{}
 
 // NewSchedulerMetrics creates a new scheduler metrics instance
 func NewSchedulerMetrics() *SchedulerMetrics {
-	return &SchedulerMetrics{
-		registry: GetRegistry(),
-	}
+	return &SchedulerMetrics{}
 }
 
 // RecordJobExecution records metrics for a scheduler job execution
@@ -25,25 +21,25 @@ func (s *SchedulerMetrics) RecordJobExecution(handlerType string, duration time.
 	}
 
 	// Record duration
-	s.registry.SchedulerJobDuration.WithLabelValues(handlerType, status).Observe(duration.Seconds())
-	
+	SchedulerJobDuration.WithLabelValues(handlerType, status).Observe(duration.Seconds())
+
 	// Record job count
-	s.registry.SchedulerJobTotal.WithLabelValues(handlerType, status).Inc()
+	SchedulerJobTotal.WithLabelValues(handlerType, status).Inc()
 }
 
 // RecordActiveJob increments the active job counter for a handler type
 func (s *SchedulerMetrics) RecordActiveJob(handlerType string) {
-	s.registry.SchedulerActiveJobs.WithLabelValues(handlerType).Inc()
+	SchedulerActiveJobs.WithLabelValues(handlerType).Inc()
 }
 
 // RecordJobComplete decrements the active job counter for a handler type
 func (s *SchedulerMetrics) RecordJobComplete(handlerType string) {
-	s.registry.SchedulerActiveJobs.WithLabelValues(handlerType).Dec()
+	SchedulerActiveJobs.WithLabelValues(handlerType).Dec()
 }
 
 // UpdateQueueDepth updates the scheduler queue depth metric
 func (s *SchedulerMetrics) UpdateQueueDepth(depth float64) {
-	s.registry.SchedulerQueueDepth.Set(depth)
+	SchedulerQueueDepth.Set(depth)
 }
 
 // JobExecutionTimer provides a timer for measuring job execution duration
@@ -74,7 +70,7 @@ func (t *JobExecutionTimer) Finish(err error) {
 // with automatic metrics collection
 func WithJobMetrics(handlerType string, handler func(ctx context.Context) error) func(ctx context.Context) error {
 	metrics := NewSchedulerMetrics()
-	
+
 	return func(ctx context.Context) error {
 		timer := metrics.NewJobExecutionTimer(handlerType)
 		err := handler(ctx)

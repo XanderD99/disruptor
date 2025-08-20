@@ -60,7 +60,7 @@ func onTrackStart(logger *slog.Logger) func(disgolink.Player, disgolavalink.Trac
 		)
 
 		logger.Info("track started")
-		
+
 		// Record audio track event
 		audioMetrics := metrics.NewAudioMetrics()
 		audioMetrics.RecordTrackEvent("start", guildID)
@@ -79,7 +79,7 @@ func onTrackEnd(session *disruptor.Session, logger *slog.Logger) func(disgolink.
 		)
 
 		logger.Info("track ended")
-		
+
 		// Record audio track event and processing duration
 		audioMetrics := metrics.NewAudioMetrics()
 		audioMetrics.RecordTrackEvent("end", guildID)
@@ -92,7 +92,7 @@ func onTrackEnd(session *disruptor.Session, logger *slog.Logger) func(disgolink.
 		sleepDuration := max(min(time.Duration(float64(trackDuration)*0.02), 500*time.Millisecond), 250*time.Millisecond)
 
 		logger.Debug("waiting before leaving voice channel", slog.Duration("sleep", sleepDuration))
-		
+
 		// Record audio processing duration for the sleep/cleanup operation
 		timer := audioMetrics.NewAudioProcessingTimer("cleanup", guildID)
 		time.Sleep(sleepDuration)
@@ -103,7 +103,7 @@ func onTrackEnd(session *disruptor.Session, logger *slog.Logger) func(disgolink.
 		} else {
 			audioMetrics.RecordVoiceStateUpdate(guildID, true)
 		}
-		
+
 		timer.Finish()
 	}
 }

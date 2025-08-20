@@ -48,12 +48,6 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
-	// Initialize metrics registry
-	metricsRegistry := metrics.GetRegistry()
-	if err := metricsRegistry.Register(); err != nil {
-		log.Fatalf("Error registering metrics: %v", err)
-	}
-
 	// Start system metrics collection
 	systemMetrics := metrics.NewSystemMetrics()
 	go systemMetrics.StartSystemMetricsCollection(context.Background(), 30*time.Second)

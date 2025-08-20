@@ -126,9 +126,9 @@ type QueryHook struct {
 	logSlow time.Duration
 
 	logger *slog.Logger
-	
+
 	// metrics hook for database metrics collection
-	metricsHook DatabaseMetricsHook
+	metricsHook    DatabaseMetricsHook
 	collectMetrics bool
 }
 
