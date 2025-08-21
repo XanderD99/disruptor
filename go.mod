@@ -11,7 +11,7 @@ require (
 	github.com/disgoorg/json v1.2.0
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/lmittmann/tint v1.1.2
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/slog-multi v1.4.1
 	github.com/uptrace/bun v1.2.15
