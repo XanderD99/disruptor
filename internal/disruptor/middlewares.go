@@ -6,9 +6,12 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/disgo/handler/middleware"
+	"github.com/disgoorg/oteldisgo"
 
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
+
+var otelMiddleware = oteldisgo.Middleware("disruptor")
 
 var loggerMiddleware handler.Middleware = func(next handler.Handler) handler.Handler {
 	return func(event *handler.InteractionEvent) error {

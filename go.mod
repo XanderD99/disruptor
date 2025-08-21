@@ -28,6 +28,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g4s8/envdoc v1.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

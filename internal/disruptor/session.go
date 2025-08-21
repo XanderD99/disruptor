@@ -21,6 +21,7 @@ type Session struct {
 func New(cfg Config) (*Session, error) {
 	router := handler.New()
 	router.Use(
+		otelMiddleware,
 		errDeferMiddleware,
 		loggerMiddleware,
 	)
