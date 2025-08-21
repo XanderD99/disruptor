@@ -13,6 +13,8 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
 
+	"github.com/XanderD99/bunslog"
+
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/lavalink"
@@ -23,7 +25,6 @@ import (
 	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
 	"github.com/XanderD99/disruptor/pkg/processes"
-	"github.com/XanderD99/disruptor/pkg/slogbun"
 )
 
 func main() {
@@ -115,8 +116,8 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 		return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
 	}
 
-	database.AddQueryHook(slogbun.NewQueryHook(
-		slogbun.WithLogger(logger),
+	database.AddQueryHook(bunslog.NewQueryHook(
+		bunslog.WithLogger(logger),
 	))
 
 	group.AddProcessWithCtx("database", func(ctx context.Context) error {

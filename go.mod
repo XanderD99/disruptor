@@ -3,6 +3,7 @@ module github.com/XanderD99/disruptor
 go 1.24.2
 
 require (
+	github.com/XanderD99/bunslog v0.1.0
 	github.com/betrayy/slog-discord v0.1.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/caarlos0/env/v11 v11.3.1

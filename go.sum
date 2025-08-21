@@ -1,3 +1,5 @@
+github.com/XanderD99/bunslog v0.1.0 h1:VVvkAtG1l70x1cDLvAvo7w29996n7j98OqXVFm9K/ok=
+github.com/XanderD99/bunslog v0.1.0/go.mod h1:4beXzu4ZzuhYhboZgOSIqf54fNF7NsDzvNfpURd1Auw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/betrayy/slog-discord v0.1.0 h1:+uzf99loHU69G39w5w5+mJHk4J+tepWiNpMi3ERdzWg=
