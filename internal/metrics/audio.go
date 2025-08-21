@@ -19,9 +19,9 @@ func NewAudioMetrics() *AudioMetrics {
 
 // RecordVoiceConnectionAttempt records a voice connection attempt
 func (a *AudioMetrics) RecordVoiceConnectionAttempt(guildID snowflake.ID, success bool) {
-	status := "success"
+	status := StatusSuccess
 	if !success {
-		status = "error"
+		status = StatusError
 	}
 
 	ctx := context.Background()
@@ -91,9 +91,9 @@ func (t *AudioProcessingTimer) Finish() {
 
 // Voice state update metrics
 func (a *AudioMetrics) RecordVoiceStateUpdate(guildID snowflake.ID, success bool) {
-	status := "success"
+	status := StatusSuccess
 	if !success {
-		status = "error"
+		status = StatusError
 	}
 
 	ctx := context.Background()

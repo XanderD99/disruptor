@@ -16,6 +16,11 @@ const (
 	_pathMetrics = "/metrics"
 )
 
+const (
+	StatusSuccess = "success"
+	StatusError   = "error"
+)
+
 type Config struct {
 	// ⏳ How long to wait before shutting down the metrics server
 	ShutdownDuration time.Duration `env:"SHUTDOWN_DURATION" default:"15s"`
@@ -47,7 +52,7 @@ func NewServerWithExporter(cfg Config, promExporter *prometheus.Exporter) (*Serv
 	routes := nethttp.NewServeMux()
 	// OpenTelemetry Prometheus exporter should implement http.Handler
 	// If not, we'll need to access its internal gatherer
-	if handler, ok := interface{}(promExporter).(nethttp.Handler); ok {
+	if handler, ok := any(promExporter).(nethttp.Handler); ok {
 		routes.Handle(_pathMetrics, handler)
 	} else {
 		// Fallback to default prometheus handler

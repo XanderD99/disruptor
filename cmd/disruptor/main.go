@@ -131,7 +131,7 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 	database.AddQueryHook(bunotel.NewQueryHook(
 		bunotel.WithDBName("disruptor"),
 		bunotel.WithAttributes(
-			// Add additional attributes if needed
+		// Add additional attributes if needed
 		),
 	))
 

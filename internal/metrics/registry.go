@@ -1,11 +1,7 @@
 package metrics
 
 import (
-	"context"
-	"runtime"
-
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -27,10 +23,6 @@ var (
 	VoiceConnections        metric.Int64UpDownCounter
 	AudioTrackEvents        metric.Int64Counter
 	AudioProcessingDuration metric.Float64Histogram
-
-	// Discord API metrics
-	DiscordAPIRequests metric.Int64Counter
-	DiscordAPILatency  metric.Float64Histogram
 
 	// System metrics - using observability callbacks for gauge-like behavior
 	// These will be implemented as async gauges
@@ -104,59 +96,6 @@ func init() {
 	AudioProcessingDuration, err = meter.Float64Histogram(
 		"disruptor_audio_processing_duration_seconds",
 		metric.WithDescription("Duration of audio processing operations in seconds"),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	// Discord API metrics
-	DiscordAPIRequests, err = meter.Int64Counter(
-		"disruptor_discord_api_requests_total",
-		metric.WithDescription("Total number of Discord API requests"),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	DiscordAPILatency, err = meter.Float64Histogram(
-		"disruptor_discord_api_request_duration_seconds",
-		metric.WithDescription("Duration of Discord API requests in seconds"),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	// System metrics - register async gauges
-	_, err = meter.Int64ObservableGauge(
-		"disruptor_system_goroutines",
-		metric.WithDescription("Number of active goroutines"),
-		metric.WithInt64Callback(func(ctx context.Context, o metric.Int64Observer) error {
-			o.Observe(int64(runtime.NumGoroutine()))
-			return nil
-		}),
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = meter.Int64ObservableGauge(
-		"disruptor_system_memory_bytes",
-		metric.WithDescription("Memory usage in bytes"),
-		metric.WithInt64Callback(func(ctx context.Context, o metric.Int64Observer) error {
-			var memStats runtime.MemStats
-			runtime.ReadMemStats(&memStats)
-
-			o.Observe(int64(memStats.HeapAlloc), metric.WithAttributes(attribute.String("type", "heap_alloc")))
-			o.Observe(int64(memStats.HeapSys), metric.WithAttributes(attribute.String("type", "heap_sys")))
-			o.Observe(int64(memStats.HeapIdle), metric.WithAttributes(attribute.String("type", "heap_idle")))
-			o.Observe(int64(memStats.HeapInuse), metric.WithAttributes(attribute.String("type", "heap_inuse")))
-			o.Observe(int64(memStats.HeapReleased), metric.WithAttributes(attribute.String("type", "heap_released")))
-			o.Observe(int64(memStats.StackInuse), metric.WithAttributes(attribute.String("type", "stack_inuse")))
-			o.Observe(int64(memStats.StackSys), metric.WithAttributes(attribute.String("type", "stack_sys")))
-			o.Observe(int64(memStats.TotalAlloc), metric.WithAttributes(attribute.String("type", "total_alloc")))
-			o.Observe(int64(memStats.Sys), metric.WithAttributes(attribute.String("type", "sys")))
-			return nil
-		}),
 	)
 	if err != nil {
 		panic(err)
