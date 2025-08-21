@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 	"text/template"
 	"time"
 
@@ -188,21 +187,10 @@ func (h *QueryHook) BeforeQuery(ctx context.Context, event *bun.QueryEvent) cont
 
 // AfterQuery convert a bun QueryEvent into a slog message and collect metrics
 func (h *QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
-	// Call metrics hook first (always collect metrics regardless of logging settings)
-	if h.collectMetrics && h.metricsHook != nil {
-		h.metricsHook.AfterQuery(ctx, event)
-	}
-
 	if !h.enabled {
 		return
 	}
 
-	if !h.verbose {
-		switch event.Err {
-		case nil, sql.ErrNoRows, sql.ErrTxDone:
-			return
-		}
-	}
 	var level slog.Level
 	var isError bool
 	var msg bytes.Buffer
@@ -226,7 +214,7 @@ func (h *QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
 	args := &LogEntryVars{
 		Timestamp: now,
 		Query:     string(event.Query),
-		Operation: eventOperation(event),
+		Operation: event.Operation(),
 		Duration:  dur,
 		Error:     event.Err,
 	}
@@ -254,34 +242,4 @@ func (h *QueryHook) AfterQuery(ctx context.Context, event *bun.QueryEvent) {
 		panic(fmt.Errorf("Unsupported level: %v", level))
 	}
 
-}
-
-// taken from bun
-func eventOperation(event *bun.QueryEvent) string {
-	switch event.QueryAppender.(type) {
-	case *bun.SelectQuery:
-		return "SELECT"
-	case *bun.InsertQuery:
-		return "INSERT"
-	case *bun.UpdateQuery:
-		return "UPDATE"
-	case *bun.DeleteQuery:
-		return "DELETE"
-	case *bun.CreateTableQuery:
-		return "CREATE TABLE"
-	case *bun.DropTableQuery:
-		return "DROP TABLE"
-	}
-	return queryOperation(event.Query)
-}
-
-// taken from bun
-func queryOperation(name string) string {
-	if idx := strings.Index(name, " "); idx > 0 {
-		name = name[:idx]
-	}
-	if len(name) > 16 {
-		name = name[:16]
-	}
-	return string(name)
 }
