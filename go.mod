@@ -8,7 +8,9 @@ require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/disgoorg/disgo v0.18.16
 	github.com/disgoorg/disgolink/v3 v3.0.4
+	github.com/disgoorg/ffmpeg-audio v0.0.0-20240711185218-971420b16e69
 	github.com/disgoorg/json v1.2.0
+	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/lmittmann/tint v1.1.2
 	github.com/prometheus/client_golang v1.23.0
@@ -28,7 +30,6 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g4s8/envdoc v1.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -38,6 +39,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect

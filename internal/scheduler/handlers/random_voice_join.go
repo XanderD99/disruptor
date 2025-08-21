@@ -90,9 +90,15 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild snowfla
 	// Record voice connection attempt
 	audioMetrics := metrics.NewAudioMetrics()
 
-	if err := session.UpdateVoiceState(ctx, guild, &channelID); err != nil {
+	sound, err := util.GetRandomSound(session.Client, guild)
+	if err != nil {
 		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
-		return fmt.Errorf("failed to update voice state: %w", err)
+		return fmt.Errorf("failed to get random sound: %w", err)
+	}
+
+	if err := util.PlaySoundboardSound(ctx, session.Client, guild, channelID, sound); err != nil {
+		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
+		return fmt.Errorf("failed to play sound: %w", err)
 	}
 
 	audioMetrics.RecordVoiceConnectionAttempt(guild, true)

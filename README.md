@@ -114,7 +114,6 @@ All settings via environment variables:
 - `CONFIG_TOKEN` (required): Discord bot token
 - `CONFIG_DATABASE_DSN`: SQLite DSN (`file:./disruptor.db?cache=shared` for file-based, `file::memory:?cache=shared` for in-memory)
 - `CONFIG_LOGGING_LEVEL`: Log verbosity (`debug`, `info`, `warn`, `error`)
-- `CONFIG_LAVALINK_*`: Lavalink audio server settings (if used)
 - See `configs/.env.example` for full list
 
 ---
@@ -140,7 +139,6 @@ All settings via environment variables:
   - `handlers/`: Discord event handlers
   - `models/`: Database models
   - `scheduler/`: Audio scheduling logic
-  - `lavalink/`: Lavalink integration
   - `metrics/`: Metrics and monitoring
   - `util/`: Utilities
 - `ci/`: CI/CD and Docker
@@ -192,7 +190,6 @@ MIT License. See [LICENSE](LICENSE).
 - [Disgo](https://github.com/disgoorg/disgo)
 - [Bun](https://bun.uptrace.dev/)
 - [Go](https://golang.org/)
-- [Lavalink](https://github.com/freyacodes/Lavalink)
 - [SQLite](https://www.sqlite.org/)
 - Everyone who's been "disrupted" by this bot—you're the real MVP! 🏆
 

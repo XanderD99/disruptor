@@ -18,7 +18,6 @@ import (
 
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/listeners"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
@@ -155,16 +154,13 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 	}
 	group.AddProcessWithCtx("session", session.Open, false, session.Close)
 
-	lava := lavalink.New(cfg.LavalinkNodes, session, logger)
-	group.AddProcessWithCtx("disgolink", lava.Start, false, nil)
-
 	scheduleManager.RegisterBuilder(handlers.HandlerTypeRandomVoiceJoin, func(interval time.Duration) *scheduler.Scheduler {
 		return scheduler.NewScheduler(interval, handlers.NewRandomVoiceJoinHandler(session, db))
 	})
 
 	err = session.AddCommands(
-		commands.Play(lava),
-		commands.Disconnect(lava),
+		commands.Play(),
+		commands.Disconnect(),
 		commands.Next(db, scheduleManager),
 		commands.Interval(db, scheduleManager),
 		commands.Chance(db),
@@ -174,8 +170,6 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 	}
 
 	session.AddEventListeners(
-		bot.NewListenerFunc(listeners.VoiceStateUpdate(logger, lava)),
-		bot.NewListenerFunc(listeners.VoiceServerUpdate(logger, lava)),
 		bot.NewListenerFunc(listeners.GuildJoin(logger, db, scheduleManager)),
 		bot.NewListenerFunc(listeners.GuildLeave(logger, db, scheduleManager)),
 		bot.NewListenerFunc(listeners.GuildReady(logger, db, scheduleManager)),

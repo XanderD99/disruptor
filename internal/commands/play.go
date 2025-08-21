@@ -7,19 +7,14 @@ import (
 	"github.com/disgoorg/disgo/handler"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/util"
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
-type play struct {
-	lavalink lavalink.Lavalink
-}
+type play struct{}
 
-func Play(lavalink lavalink.Lavalink) disruptor.Command {
-	return play{
-		lavalink: lavalink,
-	}
+func Play() disruptor.Command {
+	return play{}
 }
 
 // Load implements disruptor.Command.
@@ -67,23 +62,24 @@ func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.Comma
 
 	logger.DebugContext(event.Ctx, "user in voice channel", "channel.id", voiceState.ChannelID)
 
-	player := p.lavalink.ExistingPlayer(*event.GuildID())
-	if player != nil && player.Track() != nil {
-		return fmt.Errorf("already playing in this guild. Please try again when the bot leaves the voice channel")
+	sound, err := util.GetRandomSound(client, *event.GuildID())
+	if err != nil {
+		return fmt.Errorf("failed to get random sound: %w", err)
 	}
 
-	if err := client.UpdateVoiceState(event.Ctx, *event.GuildID(), voiceState.ChannelID, false, true); err != nil {
-		return fmt.Errorf("failed to update voice state: %w", err)
-	}
-
-	logger.DebugContext(event.Ctx, "successfully joined voice channel", "channel.id", voiceState.ChannelID)
-
-	content := fmt.Sprintf("Playing in <#%s>", voiceState.ChannelID.String())
+	content := fmt.Sprintf("Playing %s in <#%s>", sound.Name, voiceState.ChannelID.String())
 	response := discord.NewMessageUpdateBuilder().SetContent(content).Build()
 
 	if _, err := event.UpdateInteractionResponse(response); err != nil {
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}
+
+	// fire and forget. If we don't do that here the sound could play longer than the max amount of time that discord allows between interaction and respons
+	go func() {
+		if err := util.PlaySoundboardSound(event.Ctx, client, *event.GuildID(), *voiceState.ChannelID, sound); err != nil {
+			logger.ErrorContext(event.Ctx, "failed to play sound", "error", err)
+		}
+	}()
 
 	return nil
 }
