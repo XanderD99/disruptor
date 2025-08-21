@@ -1,7 +1,6 @@
 package otel
 
 import (
-	"context"
 	"fmt"
 
 	"go.opentelemetry.io/otel"
@@ -10,7 +9,7 @@ import (
 )
 
 // InitMetrics initializes OpenTelemetry metrics with Prometheus exporter
-func InitMetrics(ctx context.Context) (*prometheus.Exporter, error) {
+func InitMetrics() (*prometheus.Exporter, error) {
 	// Create Prometheus exporter
 	promExporter, err := prometheus.New()
 	if err != nil {

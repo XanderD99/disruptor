@@ -83,7 +83,7 @@ func initServerGroup(cfg Config) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("servers", time.Second*5)
 
 	// Initialize OpenTelemetry metrics and get the Prometheus exporter
-	promExporter, err := otel.InitMetrics(context.Background())
+	promExporter, err := otel.InitMetrics()
 	if err != nil {
 		return nil, fmt.Errorf("error initializing OpenTelemetry metrics: %w", err)
 	}
@@ -131,9 +131,6 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 	// Add OpenTelemetry hook for automatic metrics collection
 	database.AddQueryHook(bunotel.NewQueryHook(
 		bunotel.WithDBName("disruptor"),
-		bunotel.WithAttributes(
-		// Add additional attributes if needed
-		),
 	))
 
 	// Add slog hook for logging (without custom metrics)
@@ -183,10 +180,6 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 		bot.NewListenerFunc(listeners.GuildLeave(logger, db, scheduleManager)),
 		bot.NewListenerFunc(listeners.GuildReady(logger, db, scheduleManager)),
 	)
-
-	// Initialize Discord collector for guild metrics
-	discordCollector := metrics.NewDiscordCollector(session)
-	group.AddProcessWithCtx("discord_metrics", discordCollector.StartCollection, false, nil)
 
 	return group, nil
 }
