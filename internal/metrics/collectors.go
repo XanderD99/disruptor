@@ -1,51 +1,44 @@
 package metrics
 
 import (
-	"errors"
-	"fmt"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/prometheus/client_golang/prometheus"
+	"context"
 )
 
+// DiscordSessionInterface defines the interface needed for Discord metrics collection
+// This prevents import cycle by not importing the disruptor package directly
+type DiscordSessionInterface interface {
+	GuildsLen() int
+}
+
+// DiscordCollector collects Discord-related metrics using session interface
 type DiscordCollector struct {
-	Session *discordgo.Session
+	session DiscordSessionInterface
+	metrics *SystemMetrics
 }
 
-var (
-	totalGuildsDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("disruptor", "discord", "guild_count"),
-		"Total number of guilds the bot is in",
-		[]string{"shard"},
-		nil,
-	)
-)
-
-func RegisterDiscordCollector(session *discordgo.Session) error {
-	collector := &DiscordCollector{
-		Session: session,
+// NewDiscordCollector creates a new Discord collector
+func NewDiscordCollector(session DiscordSessionInterface) *DiscordCollector {
+	return &DiscordCollector{
+		session: session,
+		metrics: NewSystemMetrics(),
 	}
+}
 
-	if err := prometheus.Register(collector); err != nil {
-		if errors.As(err, &prometheus.AlreadyRegisteredError{}) {
-			// If the collector is already registered, we can safely ignore this error.
-			return nil
-		}
-		return fmt.Errorf("failed to register Discord collector: %w", err)
+// CollectGuildMetrics updates guild count metrics
+func (c *DiscordCollector) CollectGuildMetrics() {
+	if c.session != nil {
+		// Update guild count using the new metrics registry
+		guildCount := int64(c.session.GuildsLen())
+		c.metrics.RecordGuildCount("0", guildCount) // Using "0" as default shard ID
 	}
+}
 
+// StartCollection starts periodic collection of Discord metrics
+func (c *DiscordCollector) StartCollection(ctx context.Context) error {
+	// Collect initial metrics
+	c.CollectGuildMetrics()
+
+	// Note: In a production system, you might want to collect these metrics
+	// periodically, but for now we'll collect them on-demand
 	return nil
-}
-
-func (c *DiscordCollector) Collect(ch chan<- prometheus.Metric) {
-	ch <- prometheus.MustNewConstMetric(
-		totalGuildsDesc,
-		prometheus.GaugeValue,
-		float64(len(c.Session.State.Guilds)),
-		fmt.Sprint(c.Session.ShardID),
-	)
-}
-
-func (c *DiscordCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- totalGuildsDesc
 }

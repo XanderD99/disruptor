@@ -12,6 +12,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
+	"github.com/uptrace/bun/extra/bunotel"
 
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/disruptor"
@@ -19,6 +20,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/listeners"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/otel"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
@@ -48,6 +50,10 @@ func main() {
 	}
 	pm.AddProcessGroup(pg)
 
+	// Start system metrics collection
+	systemMetrics := metrics.NewSystemMetrics()
+	go systemMetrics.StartSystemMetricsCollection(context.Background(), 30*time.Second)
+
 	pg, database, err := initDatabase(cfg, logger)
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
@@ -75,8 +81,14 @@ func main() {
 func initServerGroup(cfg Config) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("servers", time.Second*5)
 
-	// Initialize metrics server
-	metricsServer, err := metrics.NewServer(cfg.Metrics)
+	// Initialize OpenTelemetry metrics and get the Prometheus exporter
+	promExporter, err := otel.InitMetrics(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("error initializing OpenTelemetry metrics: %w", err)
+	}
+
+	// Initialize metrics server with OpenTelemetry Prometheus exporter
+	metricsServer, err := metrics.NewServerWithExporter(cfg.Metrics, promExporter)
 	if err != nil {
 		return nil, fmt.Errorf("error creating metrics server: %w", err)
 	}
@@ -115,6 +127,15 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 		return group, nil, fmt.Errorf("invalid database type: %s", cfg.Database.Type)
 	}
 
+	// Add OpenTelemetry hook for automatic metrics collection
+	database.AddQueryHook(bunotel.NewQueryHook(
+		bunotel.WithDBName("disruptor"),
+		bunotel.WithAttributes(
+		// Add additional attributes if needed
+		),
+	))
+
+	// Add slog hook for logging (without custom metrics)
 	database.AddQueryHook(slogbun.NewQueryHook(
 		slogbun.WithLogger(logger),
 	))
@@ -161,6 +182,10 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 		bot.NewListenerFunc(listeners.GuildLeave(logger, db, scheduleManager)),
 		bot.NewListenerFunc(listeners.GuildReady(logger, db, scheduleManager)),
 	)
+
+	// Initialize Discord collector for guild metrics
+	discordCollector := metrics.NewDiscordCollector(session)
+	group.AddProcessWithCtx("discord_metrics", discordCollector.StartCollection, false, nil)
 
 	return group, nil
 }

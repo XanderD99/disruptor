@@ -45,6 +45,11 @@ func (s *Session) UpdateVoiceState(ctx context.Context, guildID snowflake.ID, ch
 	return s.Client.UpdateVoiceState(ctx, guildID, channelID, true, false)
 }
 
+// GuildsLen returns the number of guilds for metrics collection
+func (s *Session) GuildsLen() int {
+	return s.Caches().GuildsLen()
+}
+
 func (s *Session) AddCommands(commands ...Command) error {
 	cmds := make([]discord.ApplicationCommandCreate, 0, len(commands))
 	for _, cmd := range commands {

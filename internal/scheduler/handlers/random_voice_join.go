@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
+	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/internal/util"
@@ -33,7 +34,8 @@ func NewRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 }
 
 func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler.HandleFunc {
-	return func(ctx context.Context) error {
+	// Import the metrics package at the top if not already imported
+	originalHandler := func(ctx context.Context) error {
 		chance := util.RandomFloat(0, 100) // Use float for better precision
 
 		interval, ok := util.GetIntervalFromContext(ctx)
@@ -56,6 +58,9 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 			}
 		})
 	}
+
+	// Wrap with metrics collection
+	return metrics.WithJobMetrics(HandlerTypeRandomVoiceJoin, originalHandler)
 }
 
 func processGuild(ctx context.Context, session *disruptor.Session, guild snowflake.ID) error {
@@ -81,10 +86,16 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild snowfla
 
 	// Select a random channel
 	channelID := randomChannelID(channels)
+
+	// Record voice connection attempt
+	audioMetrics := metrics.NewAudioMetrics()
+
 	if err := session.UpdateVoiceState(ctx, guild, &channelID); err != nil {
+		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 
+	audioMetrics.RecordVoiceConnectionAttempt(guild, true)
 	return nil
 }
 

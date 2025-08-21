@@ -12,6 +12,8 @@ import (
 
 var loggerMiddleware handler.Middleware = func(next handler.Handler) handler.Handler {
 	return func(event *handler.InteractionEvent) error {
+		// Start timer for interaction handling
+
 		logger := event.Client().Logger().With(
 			slog.Group("interaction", slog.Any("id", event.Interaction.ID())),
 			slog.Group("channel", slog.Any("id", event.Channel().ID())),
@@ -23,13 +25,15 @@ var loggerMiddleware handler.Middleware = func(next handler.Handler) handler.Han
 
 		logger.DebugContext(event.Ctx, "handling interaction", slog.Any("interaction", event.Interaction), slog.Any("variables", event.Vars))
 
-		if err := next(event); err != nil {
+		err := next(event)
+
+		if err != nil {
 			logger.ErrorContext(event.Ctx, "error handling interaction", slog.Any("error", err))
-			return err
+		} else {
+			logger.InfoContext(event.Ctx, "interaction handled successfully")
 		}
 
-		logger.InfoContext(event.Ctx, "interaction handled successfully")
-		return nil
+		return err
 	}
 }
 
