@@ -40,9 +40,11 @@ func New(ctx context.Context, r io.Reader) (*AudioProvider, error) {
 		)
 		cmd.Stdin = r
 		cmd.Stdout = pw
-		// cmd.Stderr = os.Stderr // For debugging
 
-		_ = cmd.Run()
+		if err := cmd.Run(); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
 		pw.Close()
 	}()
 

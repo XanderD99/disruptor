@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
@@ -35,7 +36,9 @@ func PlaySoundboardSound(ctx context.Context, client bot.Client, guildID, channe
 	if err := conn.Open(ctx, channelID, false, true); err != nil {
 		return fmt.Errorf("error connecting to voice channel: %w", err)
 	}
-	defer conn.Close(context.TODO())
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	defer conn.Close(cleanupCtx)
 
 	rs, err := http.Get(sound.URL())
 	if err != nil {

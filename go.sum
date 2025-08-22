@@ -13,10 +13,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/disgoorg/disgo v0.18.16 h1:Yk6pA9TaGbuM4hWfWafH0jAfmkWvZBFY7rh49DgljGE=
 github.com/disgoorg/disgo v0.18.16/go.mod h1:dXYVH059d6aK7mI+Nh/3svSRWedNd09P7C2VX3RqbJY=
-github.com/disgoorg/disgolink/v3 v3.0.4 h1:ymSb9PPbgvA1zQBkecnopRBB+ybJyqizLxP+SCoRfpM=
-github.com/disgoorg/disgolink/v3 v3.0.4/go.mod h1:UjHfrC4NT4vzibG3GyqtY5l3aMzFwfkU+B3RiW3AQQ8=
-github.com/disgoorg/ffmpeg-audio v0.0.0-20240711185218-971420b16e69 h1:Ts3xgLHwRW4isumlhWdy4LF8Y8pgXWVI2QrASUFv2zs=
-github.com/disgoorg/ffmpeg-audio v0.0.0-20240711185218-971420b16e69/go.mod h1:zhonJ+EFEeTp4WP0sfZg5p+c2z9xhZbQ4QZ/rD1AxRc=
 github.com/disgoorg/json v1.2.0 h1:6e/j4BCfSHIvucG1cd7tJPAOp1RgnnMFSqkvZUtEd1Y=
 github.com/disgoorg/json v1.2.0/go.mod h1:BHDwdde0rpQFDVsRLKhma6Y7fTbQKub/zdGO5O9NqqA=
 github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c h1:zvb1aAyF2Nj1YxMLy1Bi1rCcM0l3j48ym92VN5pKat0=
