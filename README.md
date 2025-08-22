@@ -32,67 +32,80 @@ Welcome to **Disruptor**, the bot that brings delightful chaos to your Discord s
 
 ## Getting Started 🚀
 
-### Prerequisites ✅
+### 🏃‍♂️ Quick Start (10 minutes)
+Want to get up and running immediately? Follow the **[Quick Start Guide](docs/QUICKSTART.md)** for the fastest setup path.
 
-- [Go](https://golang.org/doc/install) **1.24+** 🐹
-- [Docker](https://docs.docker.com/get-docker/) 🐳
-- [Make](https://www.gnu.org/software/make/) 🛠️
-- Discord bot token 🤖
-- Discord soundboard sounds uploaded 🎵
-- SQLite database (auto-created) 💾
+### 📚 Complete Setup Guides
 
-### Installation 🛠️
+Choose the guide that matches your experience level:
 
-1. Clone the repo:
+| Guide | Audience | Time | Description |
+|-------|----------|------|-------------|
+| **[Quick Start](docs/QUICKSTART.md)** | Everyone | 10 min | Fastest path to a working bot |
+| **[Discord Setup](docs/DISCORD_SETUP.md)** | New to Discord bots | 15 min | Step-by-step Discord bot creation |
+| **[Installation](docs/INSTALLATION.md)** | All platforms | 20 min | Detailed platform-specific installation |
+| **[Configuration](docs/CONFIGURATION.md)** | Advanced users | 30 min | Complete configuration reference |
+| **[Deployment](docs/DEPLOYMENT.md)** | Production | 45 min | Production deployment strategies |
 
-   ```bash
-   git clone https://github.com/XanderD99/disruptor.git
-   cd disruptor
-   ```
+### ⚡ Minimal Setup
 
-2. Download dependencies:
+If you just want to test locally:
 
-   ```bash
-   go mod download
-   ```
+```bash
+# 1. Create Discord bot (get token from Discord Developer Portal)
+# 2. Clone and build
+git clone https://github.com/XanderD99/disruptor.git
+cd disruptor && go mod download && make build
 
-3. Build the project:
+# 3. Run with your token
+export CONFIG_TOKEN="your_discord_bot_token"
+./output/bin/disruptor
+```
 
-   ```bash
-   make build
-   ```
+**Need help?** Start with the [Discord Setup Guide](docs/DISCORD_SETUP.md) if you're new to Discord bots.
 
-4. Configure your Discord bot token and (optionally) your SQLite database path:
-
-   ```bash
-   export CONFIG_TOKEN=your_discord_bot_token
-   export CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared
-   ./output/bin/disruptor
-   ```
+📚 **[Complete Documentation Index](docs/README.md)** - Find the right guide for your needs
 
 ---
 
 ## Docker Deployment 🐳
 
-1. Build the Docker image:
+### Quick Docker Setup
 
-   ```bash
-   make docker-build
-   # OR
-   docker build --target final -t disruptor:latest -f ./ci/Dockerfile .
-   ```
+```bash
+# Build image
+make docker-build
 
-2. Run the container:
+# Run with environment variables
+docker run -d --name disruptor \
+  -e CONFIG_TOKEN="your_discord_bot_token" \
+  -e CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
+  -v $(pwd)/data:/data \
+  disruptor:latest
+```
 
-   ```bash
-   docker run -d --name disruptor \
-     -e CONFIG_TOKEN=your_discord_bot_token \
-     -e CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared \
-     -v /host/path/to/data:/app/data \
-     disruptor
-   ```
+### Docker Compose
 
-   > **Note**: Defaults to in-memory SQLite. For persistence, mount a volume and use a file-based DSN.
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  disruptor:
+    build: .
+    environment:
+      - CONFIG_TOKEN=${DISCORD_TOKEN}  # Set in .env file
+      - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+```
+
+```bash
+echo "DISCORD_TOKEN=your_bot_token" > .env
+docker-compose up -d
+```
+
+📖 **Production Deployment**: See [Deployment Guide](docs/DEPLOYMENT.md) for advanced deployment scenarios.
 
 ---
 
@@ -109,12 +122,30 @@ Welcome to **Disruptor**, the bot that brings delightful chaos to your Discord s
 
 ## Configuration ⚙️
 
-All settings via environment variables:
+### Essential Configuration
 
-- `CONFIG_TOKEN` (required): Discord bot token
-- `CONFIG_DATABASE_DSN`: SQLite DSN (`file:./disruptor.db?cache=shared` for file-based, `file::memory:?cache=shared` for in-memory)
+**Required:**
+- `CONFIG_TOKEN`: Your Discord bot token (get from [Discord Developer Portal](https://discord.com/developers/applications))
+
+**Recommended:**
+- `CONFIG_DATABASE_DSN`: Database location (`file:./disruptor.db?cache=shared` for persistent storage)
 - `CONFIG_LOGGING_LEVEL`: Log verbosity (`debug`, `info`, `warn`, `error`)
-- See `configs/.env.example` for full list
+
+### Configuration Examples
+
+```bash
+# Development
+export CONFIG_TOKEN="your_bot_token"
+export CONFIG_DATABASE_DSN="file::memory:?cache=shared"  # In-memory
+export CONFIG_LOGGING_LEVEL="debug"
+
+# Production  
+export CONFIG_TOKEN="your_bot_token"
+export CONFIG_DATABASE_DSN="file:./disruptor.db?cache=shared"  # Persistent
+export CONFIG_LOGGING_LEVEL="info"
+```
+
+📖 **Complete Reference**: See [Configuration Guide](docs/CONFIGURATION.md) for all options and examples.
 
 ---
 
@@ -133,24 +164,57 @@ All settings via environment variables:
 
 ### Directory Structure 📂
 
-- `cmd/`: Entrypoints
-- `internal/`: Core logic
-  - `commands/`: Slash commands (`play`, `interval`, `chance`, `disconnect`, `next`)
-  - `handlers/`: Discord event handlers
-  - `models/`: Database models
-  - `scheduler/`: Audio scheduling logic
-  - `metrics/`: Metrics and monitoring
-  - `util/`: Utilities
-- `ci/`: CI/CD and Docker
+- `cmd/`: Application entrypoints
+- `internal/`: Core application logic
+  - `commands/`: Discord slash commands (`/play`, `/interval`, `/chance`, `/disconnect`, `/next`)
+  - `handlers/`: Discord event handlers  
+  - `models/`: Database models (Bun ORM)
+  - `scheduler/`: Audio scheduling and timing logic
+  - `metrics/`: Prometheus metrics and monitoring
+  - `util/`: Shared utilities
+- `pkg/`: Reusable packages (logging, processes)
+- `ci/`: CI/CD configuration and Docker files
+- `docs/`: Documentation
 - `output/`: Compiled binaries
 
-### Build, Test, and Lint 🧪
+### Build and Test 🧪
 
-- **Build**: `make build`
-- **Test**: `make test` (no unit tests yet)
-- **Static Analysis**: `go vet ./...`
-- **Format**: `go fmt ./...`
-- **Lint**: *Do not use `make lint`—see instructions above*
+```bash
+# Download dependencies
+go mod download
+
+# Build application
+make build
+
+# Run tests (currently no tests implemented)
+make test
+
+# Static analysis and formatting
+go vet ./...
+go fmt ./...
+```
+
+**Note**: Do not use `make lint` - there are known configuration issues with golangci-lint. Use `go vet ./...` instead.
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/XanderD99/disruptor.git
+cd disruptor
+
+# Install system dependencies (Ubuntu/Debian)
+sudo apt install -y libopus-dev pkg-config
+
+# Build and run in development mode
+go mod download
+make build
+export CONFIG_TOKEN="your_dev_bot_token"
+export CONFIG_LOGGING_LEVEL="debug"
+./output/bin/disruptor
+```
+
+📖 **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ---
 
@@ -164,17 +228,41 @@ All settings via environment variables:
 
 ---
 
+## Troubleshooting 🔧
+
+### Common Issues
+
+| Issue | Quick Fix |
+|-------|-----------|
+| "CONFIG_TOKEN is not set" | `export CONFIG_TOKEN="your_bot_token"` |
+| Bot won't connect | Verify token in Discord Developer Portal |
+| No slash commands | Wait 1 hour for sync, or re-invite bot |
+| Can't join voice | Check bot has Connect + Speak permissions |
+| No sounds playing | Upload sounds to server soundboard |
+
+### Getting Help
+
+- 🚀 **Quick fixes**: [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- 📖 **Setup help**: [Installation Guide](docs/INSTALLATION.md) 
+- ⚙️ **Config issues**: [Configuration Guide](docs/CONFIGURATION.md)
+- 🐛 **Bug reports**: [GitHub Issues](https://github.com/XanderD99/disruptor/issues)
+- 💬 **Questions**: [GitHub Discussions](https://github.com/XanderD99/disruptor/discussions)
+
+---
+
 ## Contributing 🤝
 
-Ideas for contributions:
+We welcome contributions! Here are some areas where help is appreciated:
 
-- Smarter channel selection algorithms 🎯
-- New disruption strategies 🎭
-- Advanced guild config options ⚙️
-- Performance optimizations 🚀
-- Global soundboard support 🌍
+- 🎯 **Smart channel selection algorithms** - Better logic for choosing voice channels
+- 🎭 **New disruption strategies** - Creative ways to surprise users  
+- ⚙️ **Advanced configuration options** - More customization features
+- 🚀 **Performance optimizations** - Memory and CPU improvements
+- 🌍 **Global soundboard support** - Cross-server sound sharing
+- 📝 **Documentation improvements** - Better guides and examples
+- 🧪 **Test coverage** - Unit and integration tests
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+📖 **Read more**: [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ---
 
