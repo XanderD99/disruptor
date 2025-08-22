@@ -7,19 +7,15 @@ import (
 	"github.com/disgoorg/disgo/handler"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/util"
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
 type disconnect struct {
-	lavalink lavalink.Lavalink
 }
 
-func Disconnect(lavalink lavalink.Lavalink) disruptor.Command {
-	return disconnect{
-		lavalink: lavalink,
-	}
+func Disconnect() disruptor.Command {
+	return disconnect{}
 }
 
 // Load implements disruptor.Command.

@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/lavalink"
 	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/pkg/logging"
 
@@ -18,9 +17,6 @@ type Config struct {
 	Logging logging.Config `envPrefix:"LOGGING_"`
 	// 📊 Metrics configuration for Prometheus
 	Metrics metrics.Config `envPrefix:"METRICS_" `
-
-	// 🔗 List of Lavalink nodes to connect to
-	LavalinkNodes []lavalink.Node `envPrefix:"LAVALINK_NODE"`
 
 	// 🗄️ Configuration for the database
 	Database struct {
