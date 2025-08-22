@@ -161,6 +161,7 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 	err = session.AddCommands(
 		commands.Play(),
 		commands.Disconnect(),
+		commands.Invite(),
 		commands.Next(db, scheduleManager),
 		commands.Interval(db, scheduleManager),
 		commands.Chance(db),
