@@ -96,7 +96,7 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild snowfla
 		return fmt.Errorf("failed to get random sound: %w", err)
 	}
 
-	if err := util.PlaySoundboardSound(ctx, session.Client, guild, channelID, sound); err != nil {
+	if err := util.PlaySound(ctx, session.Client, guild, channelID, sound.URL()); err != nil {
 		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
 		return fmt.Errorf("failed to play sound: %w", err)
 	}

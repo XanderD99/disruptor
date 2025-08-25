@@ -23,24 +23,27 @@ func GetRandomSound(client bot.Client, guildID snowflake.ID) (discord.Soundboard
 	client.Caches().GuildSoundboardSoundsForEach(guildID, func(soundboardSound discord.SoundboardSound) {
 		sounds = append(sounds, soundboardSound)
 	})
+
 	if len(sounds) == 0 {
 		return discord.SoundboardSound{}, fmt.Errorf("no soundboard sounds available")
 	}
+
 	index := RandomInt(0, len(sounds)-1)
 	return sounds[index], nil
 }
 
-func PlaySoundboardSound(ctx context.Context, client bot.Client, guildID, channelID snowflake.ID, sound discord.SoundboardSound) error {
+func PlaySound(ctx context.Context, client bot.Client, guildID, channelID snowflake.ID, url string) error {
 	conn := client.VoiceManager().CreateConn(guildID)
 
 	if err := conn.Open(ctx, channelID, false, true); err != nil {
 		return fmt.Errorf("error connecting to voice channel: %w", err)
 	}
+
 	cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	defer conn.Close(cleanupCtx)
 
-	rs, err := http.Get(sound.URL())
+	rs, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("error opening sound URL: %w", err)
 	}

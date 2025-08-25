@@ -76,7 +76,7 @@ func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.Comma
 
 	// fire and forget. If we don't do that here the sound could play longer than the max amount of time that discord allows between interaction and response
 	go func() {
-		if err := util.PlaySoundboardSound(event.Ctx, client, *event.GuildID(), *voiceState.ChannelID, sound); err != nil {
+		if err := util.PlaySound(event.Ctx, client, *event.GuildID(), *voiceState.ChannelID, sound.URL()); err != nil {
 			logger.ErrorContext(event.Ctx, "failed to play sound", "error", err)
 		}
 	}()
