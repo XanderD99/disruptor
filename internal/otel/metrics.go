@@ -8,8 +8,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 )
 
-// InitMetrics initializes OpenTelemetry metrics with Prometheus exporter
-func InitMetrics() (*prometheus.Exporter, error) {
+// InitPrometheusExporter initializes OpenTelemetry metrics with Prometheus exporter
+func InitPrometheusExporter() (*prometheus.Exporter, error) {
 	// Create Prometheus exporter
 	promExporter, err := prometheus.New()
 	if err != nil {

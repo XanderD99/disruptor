@@ -29,19 +29,6 @@ func NewServer(port int, handler http.Handler) (*Server, error) {
 	}, nil
 }
 
-// Start is a blocking function that only returns when an error occurs or when Stop has been called
-//
-// Deprecated: use Run() or the lower-level Server.ListenAndServe() instead.
-func (s *Server) Start() error {
-	var err error
-	if err = s.Server.ListenAndServe(); err != nil {
-		if err != http.ErrServerClosed {
-			return fmt.Errorf("unable to serve http: %w", err)
-		}
-	}
-	return nil
-}
-
 // Run the server, blocking until ctx is cancelled or until Stop() is called.
 //
 // If ctx is cancelled, gracefully shut down the server with the given timeout.
