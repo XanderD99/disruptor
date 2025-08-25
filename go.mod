@@ -2,15 +2,17 @@ module github.com/XanderD99/disruptor
 
 go 1.24.2
 
+replace github.com/disgoorg/ffmpeg-audio => github.com/XanderD99/ffmpeg-audio v0.0.0-20250822182349-0672796dff51
+
 require (
 	github.com/XanderD99/bunslog v0.1.0
 	github.com/betrayy/slog-discord v0.1.0
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/disgoorg/disgo v0.18.16
+	github.com/disgoorg/ffmpeg-audio v0.0.0-00010101000000-000000000000
 	github.com/disgoorg/json v1.2.0
 	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c
 	github.com/disgoorg/snowflake/v2 v2.0.3
-	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757
 	github.com/lmittmann/tint v1.1.2
 	github.com/prometheus/client_golang v1.23.0
 	github.com/rs/zerolog v1.34.0
@@ -38,6 +40,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect

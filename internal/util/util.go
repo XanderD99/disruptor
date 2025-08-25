@@ -9,9 +9,8 @@ import (
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/ffmpeg-audio"
 	"github.com/disgoorg/snowflake/v2"
-
-	"github.com/XanderD99/disruptor/internal/ffmpeg"
 )
 
 func HasVoicePermissions(permissions discord.Permissions) bool {
