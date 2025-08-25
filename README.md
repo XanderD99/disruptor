@@ -33,6 +33,7 @@ Welcome to **Disruptor**, the bot that brings delightful chaos to your Discord s
 ## Getting Started 🚀
 
 ### 🏃‍♂️ Quick Start (10 minutes)
+
 Want to get up and running immediately? Follow the **[Quick Start Guide](docs/QUICKSTART.md)** for the fastest setup path.
 
 ### 📚 Complete Setup Guides
@@ -125,9 +126,11 @@ docker-compose up -d
 ### Essential Configuration
 
 **Required:**
+
 - `CONFIG_TOKEN`: Your Discord bot token (get from [Discord Developer Portal](https://discord.com/developers/applications))
 
 **Recommended:**
+
 - `CONFIG_DATABASE_DSN`: Database location (`file:./disruptor.db?cache=shared` for persistent storage)
 - `CONFIG_LOGGING_LEVEL`: Log verbosity (`debug`, `info`, `warn`, `error`)
 
@@ -139,7 +142,7 @@ export CONFIG_TOKEN="your_bot_token"
 export CONFIG_DATABASE_DSN="file::memory:?cache=shared"  # In-memory
 export CONFIG_LOGGING_LEVEL="debug"
 
-# Production  
+# Production
 export CONFIG_TOKEN="your_bot_token"
 export CONFIG_DATABASE_DSN="file:./disruptor.db?cache=shared"  # Persistent
 export CONFIG_LOGGING_LEVEL="info"
@@ -167,7 +170,7 @@ export CONFIG_LOGGING_LEVEL="info"
 - `cmd/`: Application entrypoints
 - `internal/`: Core application logic
   - `commands/`: Discord slash commands (`/play`, `/interval`, `/chance`, `/disconnect`, `/next`)
-  - `handlers/`: Discord event handlers  
+  - `handlers/`: Discord event handlers
   - `models/`: Database models (Bun ORM)
   - `scheduler/`: Audio scheduling and timing logic
   - `metrics/`: Prometheus metrics and monitoring
@@ -243,7 +246,7 @@ export CONFIG_LOGGING_LEVEL="debug"
 ### Getting Help
 
 - 🚀 **Quick fixes**: [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
-- 📖 **Setup help**: [Installation Guide](docs/INSTALLATION.md) 
+- 📖 **Setup help**: [Installation Guide](docs/INSTALLATION.md)
 - ⚙️ **Config issues**: [Configuration Guide](docs/CONFIGURATION.md)
 - 🐛 **Bug reports**: [GitHub Issues](https://github.com/XanderD99/disruptor/issues)
 - 💬 **Questions**: [GitHub Discussions](https://github.com/XanderD99/disruptor/discussions)
@@ -255,7 +258,7 @@ export CONFIG_LOGGING_LEVEL="debug"
 We welcome contributions! Here are some areas where help is appreciated:
 
 - 🎯 **Smart channel selection algorithms** - Better logic for choosing voice channels
-- 🎭 **New disruption strategies** - Creative ways to surprise users  
+- 🎭 **New disruption strategies** - Creative ways to surprise users
 - ⚙️ **Advanced configuration options** - More customization features
 - 🚀 **Performance optimizations** - Memory and CPU improvements
 - 🌍 **Global soundboard support** - Cross-server sound sharing

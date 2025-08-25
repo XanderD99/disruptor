@@ -15,7 +15,6 @@ require (
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/lmittmann/tint v1.1.2
 	github.com/prometheus/client_golang v1.23.0
-	github.com/rs/zerolog v1.34.0
 	github.com/samber/slog-multi v1.4.1
 	github.com/uptrace/bun v1.2.15
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.15
@@ -41,7 +40,6 @@ require (
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect

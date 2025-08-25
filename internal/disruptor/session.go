@@ -3,6 +3,7 @@ package disruptor
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
@@ -16,17 +17,34 @@ import (
 // Session represents the Discord bot
 type Session struct {
 	bot.Client
-	handler.Router
+}
+
+type opts struct {
+	commands []Command
+}
+
+type optFunc func(*opts)
+
+func WithCommands(commands ...Command) optFunc {
+	return func(o *opts) {
+		o.commands = commands
+	}
 }
 
 // New creates a new Discord bot with sharding support
-func New(cfg Config) (*Session, error) {
+func New(cfg Config, optFuncs ...optFunc) (*Session, error) {
+	opts := new(opts)
+	for _, o := range optFuncs {
+		o(opts)
+	}
+
 	router := handler.New()
 	router.Use(
 		middlewares.Otel,
 		middlewares.Logger,
 		middlewares.GoErrDefer,
 	)
+
 	options := []bot.ConfigOpt{}
 	options = append(options, bot.WithEventListeners(router))
 	options = append(options, cfg.ToSessionOpts()...)
@@ -36,25 +54,12 @@ func New(cfg Config) (*Session, error) {
 		return nil, err
 	}
 
-	s := &Session{
-		Client: c,
-		Router: router,
-	}
-
-	return s, nil
-}
-
-func (s *Session) UpdateVoiceState(ctx context.Context, guildID snowflake.ID, channelID *snowflake.ID) error {
-	return s.Client.UpdateVoiceState(ctx, guildID, channelID, true, false)
-}
-
-func (s *Session) AddCommands(commands ...Command) error {
-	cmds := make([]discord.ApplicationCommandCreate, 0, len(commands))
-	for _, cmd := range commands {
+	cmds := make([]discord.ApplicationCommandCreate, 0, len(opts.commands))
+	for _, cmd := range opts.commands {
 		if cmd == nil {
 			continue // Skip nil commands
 		}
-		cmd.Load(s.Router)
+		cmd.Load(router)
 		cmds = append(cmds, cmd.Options())
 	}
 
@@ -64,10 +69,11 @@ func (s *Session) AddCommands(commands ...Command) error {
 		guildIDs = append(guildIDs, guild)
 	}
 
-	if err := handler.SyncCommands(s.Client, cmds, guildIDs); err != nil {
-		return fmt.Errorf("error while syncing commands: %w", err)
+	if err := handler.SyncCommands(c, cmds, guildIDs); err != nil {
+		return nil, fmt.Errorf("error while syncing commands: %w", err)
 	}
-	return nil
+
+	return &Session{Client: c}, nil
 }
 
 func (s *Session) Open(ctx context.Context) error {
@@ -78,6 +84,11 @@ func (s *Session) Open(ctx context.Context) error {
 }
 
 func (s *Session) Close() error {
-	s.Client.Close(context.Background())
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	s.Client.Close(ctx)
+	<-ctx.Done()
+
+	return ctx.Err()
 }

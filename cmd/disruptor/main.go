@@ -144,7 +144,17 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleManager *scheduler.Manager) (*processes.ProcessGroup, error) {
 	group := processes.NewGroup("discord", time.Second*5)
 
-	session, err := disruptor.New(cfg.Disruptor)
+	session, err := disruptor.New(
+		cfg.Disruptor,
+		disruptor.WithCommands(
+			commands.Play(),
+			commands.Disconnect(),
+			commands.Invite(),
+			commands.Next(db, scheduleManager),
+			commands.Interval(db, scheduleManager),
+			commands.Chance(db),
+		),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Discord bot: %w", err)
 	}
@@ -153,18 +163,6 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 	scheduleManager.RegisterBuilder(handlers.HandlerTypeRandomVoiceJoin, func(interval time.Duration) *scheduler.Scheduler {
 		return scheduler.NewScheduler(interval, handlers.NewRandomVoiceJoinHandler(session, db))
 	})
-
-	err = session.AddCommands(
-		commands.Play(),
-		commands.Disconnect(),
-		commands.Invite(),
-		commands.Next(db, scheduleManager),
-		commands.Interval(db, scheduleManager),
-		commands.Chance(db),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error adding commands: %w", err)
-	}
 
 	session.AddEventListeners(
 		bot.NewListenerFunc(listeners.GuildJoin(logger, db, scheduleManager)),
