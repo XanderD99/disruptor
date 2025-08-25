@@ -9,6 +9,8 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
+
+	"github.com/XanderD99/disruptor/internal/disruptor/middlewares"
 )
 
 // Session represents the Discord bot
@@ -21,9 +23,9 @@ type Session struct {
 func New(cfg Config) (*Session, error) {
 	router := handler.New()
 	router.Use(
-		otelMiddleware,
-		errDeferMiddleware,
-		loggerMiddleware,
+		middlewares.Otel,
+		middlewares.Logger,
+		middlewares.GoErrDefer,
 	)
 	options := []bot.ConfigOpt{}
 	options = append(options, bot.WithEventListeners(router))
@@ -44,11 +46,6 @@ func New(cfg Config) (*Session, error) {
 
 func (s *Session) UpdateVoiceState(ctx context.Context, guildID snowflake.ID, channelID *snowflake.ID) error {
 	return s.Client.UpdateVoiceState(ctx, guildID, channelID, true, false)
-}
-
-// GuildsLen returns the number of guilds for metrics collection
-func (s *Session) GuildsLen() int {
-	return s.Caches().GuildsLen()
 }
 
 func (s *Session) AddCommands(commands ...Command) error {
