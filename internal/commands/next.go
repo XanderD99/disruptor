@@ -49,7 +49,7 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 	}
 
 	guild := models.Guild{ID: *guildID}
-	if err := p.db.NewSelect().Model(&guild).Where("snowflake = ?", *guildID).Scan(e.Ctx, &guild); err != nil {
+	if err := p.db.NewSelect().Model(&guild).WherePK().Scan(e.Ctx, &guild); err != nil {
 		return fmt.Errorf("failed to find guild: %w", err)
 	}
 

@@ -1,160 +1,225 @@
 # Deployment Guide 🚀
 
-This guide covers various deployment scenarios for Disruptor, from simple server setups to enterprise-grade deployments.
+Production deployment strategies for Disruptor across different environments, from simple Docker setups to enterprise Kubernetes deployments.
 
 ## Table of Contents
 
-- [Deployment Options Overview](#deployment-options-overview)
+- [Quick Production Setup](#quick-production-setup)
 - [Docker Deployment](#docker-deployment)
-- [Systemd Service (Linux)](#systemd-service-linux)
-- [Cloud Deployments](#cloud-deployments)
-- [Container Orchestration](#container-orchestration)
-- [Monitoring and Maintenance](#monitoring-and-maintenance)
+- [Docker Compose Examples](#docker-compose-examples)
+- [Kubernetes Deployment](#kubernetes-deployment)
+- [Traditional Server Deployment](#traditional-server-deployment)
+- [Cloud Platform Guides](#cloud-platform-guides)
+- [Monitoring & Maintenance](#monitoring--maintenance)
 - [Security Considerations](#security-considerations)
 
----
+## Quick Production Setup ⚡
 
-## Deployment Options Overview
+**Minimal production deployment with Docker:**
 
-| Method | Complexity | Scalability | Use Case |
-|--------|------------|-------------|----------|
-| **Binary + Systemd** | Low | Low | Single server, VPS |
-| **Docker** | Medium | Medium | Development, testing |
-| **Docker Compose** | Medium | Medium | Small production |
-| **Kubernetes** | High | High | Enterprise, multi-server |
-| **Cloud Services** | Medium | High | Managed deployments |
-
----
-
-## Docker Deployment
-
-### Single Container
-
-#### Basic Docker Run
 ```bash
-# Build image
-docker build -t disruptor:latest -f ci/Dockerfile .
+# 1. Create data directory
+mkdir -p /opt/disruptor/data
+chmod 755 /opt/disruptor/data
 
-# Run container
+# 2. Run with persistent storage
 docker run -d \
   --name disruptor \
   --restart unless-stopped \
-  -e CONFIG_TOKEN="your_discord_bot_token" \
+  -e CONFIG_TOKEN="your_bot_token" \
   -e CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
-  -v /host/data:/data \
-  -p 9090:9090 \
-  disruptor:latest
+  -e CONFIG_LOGGING_LEVEL="info" \
+  -e CONFIG_METRICS_ENABLED="true" \
+  -v /opt/disruptor/data:/data \
+  -p 8080:8080 \
+  ghcr.io/xanderd99/disruptor:latest
+
+# 3. Check logs
+docker logs -f disruptor
 ```
 
-#### With Environment File
-```bash
-# Create environment file
-cat > .env << EOF
-CONFIG_TOKEN=your_discord_bot_token
-CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
-CONFIG_LOGGING_LEVEL=info
-CONFIG_LOGGING_PRETTY=false
-CONFIG_METRICS_PORT=9090
-EOF
+## Docker Deployment 🐳
 
-# Run with env file
+### Standalone Docker Container
+
+#### Basic Production Container
+
+```bash
+# Pull latest stable version
+docker pull ghcr.io/xanderd99/disruptor:latest
+
+# Run with production configuration
 docker run -d \
   --name disruptor \
   --restart unless-stopped \
-  --env-file .env \
-  -v /host/data:/data \
-  -p 9090:9090 \
-  disruptor:latest
+  --memory 512m \
+  --cpus 1.0 \
+  -e CONFIG_TOKEN="${DISCORD_TOKEN}" \
+  -e CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
+  -e CONFIG_LOGGING_LEVEL="info" \
+  -e CONFIG_LOGGING_FORMAT="json" \
+  -e CONFIG_METRICS_ENABLED="true" \
+  -e CONFIG_METRICS_ADDRESS="0.0.0.0:8080" \
+  -v /opt/disruptor/data:/data \
+  -v /var/log/disruptor:/var/log/disruptor \
+  -p 8080:8080 \
+  --health-cmd="curl -f http://localhost:8080/health || exit 1" \
+  --health-interval=30s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  ghcr.io/xanderd99/disruptor:latest
 ```
 
-### Docker Compose
+#### With Database Migrations
 
-#### Basic Setup
+```bash
+# Run migrations first
+docker run --rm \
+  -v /opt/disruptor/data:/data \
+  -e CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
+  ghcr.io/xanderd99/disruptor:latest \
+  /bin/migrate up
+
+# Then start the main application
+docker run -d \
+  --name disruptor \
+  --restart unless-stopped \
+  -e CONFIG_TOKEN="${DISCORD_TOKEN}" \
+  -e CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
+  -v /opt/disruptor/data:/data \
+  ghcr.io/xanderd99/disruptor:latest
+```
+
+### Custom Dockerfile Build
+
+For custom modifications:
+
+```dockerfile
+# Dockerfile.production
+FROM ghcr.io/xanderd99/disruptor:latest
+
+# Add custom configuration
+COPY production.env /app/.env
+COPY custom-sounds/ /app/sounds/
+
+# Custom entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+```
+
+## Docker Compose Examples 📋
+
+### Simple Production Setup
+
 ```yaml
 # docker-compose.yml
 version: '3.8'
 
 services:
   disruptor:
-    build:
-      context: .
-      dockerfile: ci/Dockerfile
+    image: ghcr.io/xanderd99/disruptor:latest
     container_name: disruptor
     restart: unless-stopped
     environment:
       - CONFIG_TOKEN=${DISCORD_TOKEN}
       - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
       - CONFIG_LOGGING_LEVEL=info
-      - CONFIG_LOGGING_PRETTY=false
+      - CONFIG_LOGGING_FORMAT=json
+      - CONFIG_METRICS_ENABLED=true
     volumes:
       - ./data:/data
-      - ./logs:/logs
+      - ./logs:/var/log/disruptor
     ports:
-      - "9090:9090"
+      - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9090/metrics"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
 ```
 
-```bash
-# Create .env file
-echo "DISCORD_TOKEN=your_discord_bot_token" > .env
+**Setup and run:**
 
-# Deploy
+```bash
+# Create environment file
+echo "DISCORD_TOKEN=your_bot_token_here" > .env
+
+# Start services
 docker-compose up -d
 
 # View logs
 docker-compose logs -f disruptor
-
-# Update
-docker-compose pull && docker-compose up -d
 ```
 
-#### Production Setup with Monitoring
+### Advanced Setup with Migrations
+
 ```yaml
-# docker-compose.prod.yml
+# docker-compose.advanced.yml
 version: '3.8'
 
 services:
+  # Database migration service
+  migrate:
+    image: ghcr.io/xanderd99/disruptor:latest
+    container_name: disruptor-migrate
+    environment:
+      - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
+    volumes:
+      - ./data:/data
+    command: ["/bin/migrate", "up"]
+    restart: "no"
+
+  # Main application service
   disruptor:
-    build:
-      context: .
-      dockerfile: ci/Dockerfile
+    image: ghcr.io/xanderd99/disruptor:latest
     container_name: disruptor
     restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     environment:
       - CONFIG_TOKEN=${DISCORD_TOKEN}
       - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
       - CONFIG_LOGGING_LEVEL=info
-      - CONFIG_LOGGING_PRETTY=false
-      - CONFIG_METRICS_PORT=9090
+      - CONFIG_LOGGING_FORMAT=json
+      - CONFIG_METRICS_ENABLED=true
+      - CONFIG_METRICS_ADDRESS=0.0.0.0:8080
     volumes:
-      - disruptor-data:/data
-      - disruptor-logs:/logs
+      - ./data:/data
+      - ./logs:/var/log/disruptor
     ports:
-      - "9090:9090"
+      - "8080:8080"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/metrics"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
 
+  # Metrics and monitoring
   prometheus:
     image: prom/prometheus:latest
-    container_name: prometheus
+    container_name: disruptor-prometheus
     restart: unless-stopped
     ports:
-      - "9091:9090"
+      - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -164,318 +229,111 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
+    container_name: disruptor-grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
 
 volumes:
-  disruptor-data:
-  disruptor-logs:
   prometheus-data:
   grafana-data:
 ```
 
+**Supporting configuration files:**
+
 ```yaml
-# prometheus.yml
+# monitoring/prometheus.yml
 global:
   scrape_interval: 15s
 
 scrape_configs:
   - job_name: 'disruptor'
     static_configs:
-      - targets: ['disruptor:9090']
+      - targets: ['disruptor:8080']
+    metrics_path: /metrics
 ```
 
----
+### High Availability Setup
 
-## Systemd Service (Linux)
-
-### Installation Setup
-
-#### 1. Create Service User
-```bash
-# Create dedicated user
-sudo useradd -r -s /bin/false -d /opt/disruptor disruptor
-
-# Create directories
-sudo mkdir -p /opt/disruptor/{bin,data,logs}
-sudo chown -R disruptor:disruptor /opt/disruptor
-```
-
-#### 2. Install Binary
-```bash
-# Copy binary
-sudo cp output/bin/disruptor /opt/disruptor/bin/
-sudo chown disruptor:disruptor /opt/disruptor/bin/disruptor
-sudo chmod +x /opt/disruptor/bin/disruptor
-```
-
-#### 3. Create Configuration
-```bash
-# Create environment file
-sudo tee /opt/disruptor/.env > /dev/null << EOF
-CONFIG_TOKEN=your_discord_bot_token
-CONFIG_DATABASE_DSN=file:/opt/disruptor/data/disruptor.db?cache=shared
-CONFIG_LOGGING_LEVEL=info
-CONFIG_LOGGING_PRETTY=false
-CONFIG_METRICS_PORT=9090
-EOF
-
-# Secure configuration
-sudo chown disruptor:disruptor /opt/disruptor/.env
-sudo chmod 600 /opt/disruptor/.env
-```
-
-#### 4. Create Systemd Service
-```bash
-sudo tee /etc/systemd/system/disruptor.service > /dev/null << EOF
-[Unit]
-Description=Disruptor Discord Bot
-Documentation=https://github.com/XanderD99/disruptor
-After=network.target
-Wants=network.target
-
-[Service]
-Type=simple
-User=disruptor
-Group=disruptor
-WorkingDirectory=/opt/disruptor
-ExecStart=/opt/disruptor/bin/disruptor
-EnvironmentFile=/opt/disruptor/.env
-
-# Restart policy
-Restart=always
-RestartSec=10
-StartLimitInterval=60
-StartLimitBurst=3
-
-# Security
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/disruptor/data /opt/disruptor/logs
-
-# Resource limits
-MemoryMax=512M
-MemoryHigh=256M
-
-# Logging
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=disruptor
-
-[Install]
-WantedBy=multi-user.target
-EOF
-```
-
-#### 5. Enable and Start Service
-```bash
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Enable service
-sudo systemctl enable disruptor
-
-# Start service
-sudo systemctl start disruptor
-
-# Check status
-sudo systemctl status disruptor
-
-# View logs
-sudo journalctl -u disruptor -f
-```
-
-### Service Management
-
-#### Basic Commands
-```bash
-# Start service
-sudo systemctl start disruptor
-
-# Stop service
-sudo systemctl stop disruptor
-
-# Restart service
-sudo systemctl restart disruptor
-
-# Check status
-sudo systemctl status disruptor
-
-# View logs
-sudo journalctl -u disruptor -n 50
-
-# Follow logs
-sudo journalctl -u disruptor -f
-```
-
-#### Configuration Updates
-```bash
-# Edit configuration
-sudo nano /opt/disruptor/.env
-
-# Restart service to apply changes
-sudo systemctl restart disruptor
-
-# Verify changes
-sudo systemctl status disruptor
-```
-
----
-
-## Cloud Deployments
-
-### AWS EC2
-
-#### 1. Launch Instance
-```bash
-# Launch Ubuntu 20.04 LTS instance
-# Security Group: Allow inbound on port 9090 (metrics)
-# Key pair: Your SSH key
-```
-
-#### 2. Setup Script
-```bash
-#!/bin/bash
-# save as setup-aws.sh
-
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install dependencies
-sudo apt install -y git make pkg-config libopus-dev golang-go
-
-# Clone and build
-git clone https://github.com/XanderD99/disruptor.git
-cd disruptor
-go mod download
-make build
-
-# Create directories
-sudo mkdir -p /opt/disruptor/{bin,data,logs}
-sudo useradd -r -s /bin/false -d /opt/disruptor disruptor
-
-# Install
-sudo cp output/bin/disruptor /opt/disruptor/bin/
-sudo chown -R disruptor:disruptor /opt/disruptor
-sudo chmod +x /opt/disruptor/bin/disruptor
-
-# Create configuration
-sudo tee /opt/disruptor/.env > /dev/null << EOF
-CONFIG_TOKEN=$DISCORD_TOKEN
-CONFIG_DATABASE_DSN=file:/opt/disruptor/data/disruptor.db?cache=shared
-CONFIG_LOGGING_LEVEL=info
-CONFIG_METRICS_PORT=9090
-EOF
-
-sudo chown disruptor:disruptor /opt/disruptor/.env
-sudo chmod 600 /opt/disruptor/.env
-
-# Create systemd service (use service file from above)
-# ... systemd service creation ...
-
-# Start service
-sudo systemctl daemon-reload
-sudo systemctl enable disruptor
-sudo systemctl start disruptor
-
-echo "✅ Disruptor deployed successfully!"
-echo "View logs: sudo journalctl -u disruptor -f"
-echo "Metrics: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):9090/metrics"
-```
-
-### Google Cloud Platform
-
-#### Cloud Run Deployment
 ```yaml
-# cloudrun.yaml
-apiVersion: serving.knative.dev/v1
-kind: Service
-metadata:
-  name: disruptor
-  annotations:
-    run.googleapis.com/ingress: all
-spec:
-  template:
-    metadata:
-      annotations:
-        autoscaling.knative.dev/maxScale: "1"
-        run.googleapis.com/memory: "512Mi"
-        run.googleapis.com/cpu: "1000m"
-    spec:
-      containers:
-      - image: gcr.io/PROJECT_ID/disruptor:latest
-        env:
-        - name: CONFIG_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: discord-token
-              key: token
-        - name: CONFIG_DATABASE_DSN
-          value: "file:/data/disruptor.db?cache=shared"
-        - name: CONFIG_LOGGING_LEVEL
-          value: "info"
-        ports:
-        - containerPort: 9090
-        volumeMounts:
-        - name: data
-          mountPath: /data
-      volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: disruptor-data
+# docker-compose.ha.yml
+version: '3.8'
+
+services:
+  # Load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: disruptor-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - disruptor-1
+      - disruptor-2
+
+  # Primary instance
+  disruptor-1:
+    image: ghcr.io/xanderd99/disruptor:latest
+    container_name: disruptor-1
+    restart: unless-stopped
+    environment:
+      - CONFIG_TOKEN=${DISCORD_TOKEN}
+      - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
+      - CONFIG_LOGGING_LEVEL=info
+      - CONFIG_METRICS_ENABLED=true
+      - CONFIG_METRICS_ADDRESS=0.0.0.0:8080
+    volumes:
+      - ./data:/data
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+
+  # Secondary instance (standby)
+  disruptor-2:
+    image: ghcr.io/xanderd99/disruptor:latest
+    container_name: disruptor-2
+    restart: unless-stopped
+    environment:
+      - CONFIG_TOKEN=${DISCORD_TOKEN}
+      - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
+      - CONFIG_LOGGING_LEVEL=info
+      - CONFIG_METRICS_ENABLED=true
+      - CONFIG_METRICS_ADDRESS=0.0.0.0:8080
+    volumes:
+      - ./data:/data
+    expose:
+      - "8080"
+    profiles:
+      - standby  # Only start when explicitly enabled
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
 ```
 
-```bash
-# Build and deploy
-gcloud builds submit --tag gcr.io/PROJECT_ID/disruptor
-gcloud run deploy disruptor --image gcr.io/PROJECT_ID/disruptor:latest --platform managed
-```
+## Kubernetes Deployment ☸️
 
-### Azure Container Instances
-
-```bash
-# Create resource group
-az group create --name disruptor-rg --location eastus
-
-# Create container instance
-az container create \
-  --resource-group disruptor-rg \
-  --name disruptor \
-  --image your-registry/disruptor:latest \
-  --environment-variables \
-    CONFIG_TOKEN=your_discord_bot_token \
-    CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
-    CONFIG_LOGGING_LEVEL=info \
-  --ports 9090 \
-  --restart-policy Always \
-  --memory 0.5 \
-  --cpu 0.5
-```
-
----
-
-## Container Orchestration
-
-### Kubernetes
+### Basic Kubernetes Manifests
 
 #### Namespace and ConfigMap
+
 ```yaml
-# namespace.yaml
+# k8s/namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
   name: disruptor
-
 ---
-# configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -484,82 +342,30 @@ metadata:
 data:
   CONFIG_DATABASE_DSN: "file:/data/disruptor.db?cache=shared"
   CONFIG_LOGGING_LEVEL: "info"
-  CONFIG_LOGGING_PRETTY: "false"
-  CONFIG_METRICS_PORT: "9090"
+  CONFIG_LOGGING_FORMAT: "json"
+  CONFIG_METRICS_ENABLED: "true"
+  CONFIG_METRICS_ADDRESS: "0.0.0.0:8080"
 ```
 
 #### Secret
+
 ```yaml
-# secret.yaml
+# k8s/secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: disruptor-secret
   namespace: disruptor
 type: Opaque
-stringData:
-  CONFIG_TOKEN: "your_discord_bot_token"
+data:
+  # Base64 encoded Discord token
+  CONFIG_TOKEN: <secret>
 ```
 
-#### Deployment
-```yaml
-# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: disruptor
-  namespace: disruptor
-  labels:
-    app: disruptor
-spec:
-  replicas: 1  # Discord bots should have exactly 1 replica
-  selector:
-    matchLabels:
-      app: disruptor
-  template:
-    metadata:
-      labels:
-        app: disruptor
-    spec:
-      containers:
-      - name: disruptor
-        image: your-registry/disruptor:latest
-        ports:
-        - containerPort: 9090
-        envFrom:
-        - configMapRef:
-            name: disruptor-config
-        - secretRef:
-            name: disruptor-secret
-        volumeMounts:
-        - name: data
-          mountPath: /data
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /metrics
-            port: 9090
-          initialDelaySeconds: 30
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /metrics
-            port: 9090
-          initialDelaySeconds: 5
-          periodSeconds: 10
-      volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: disruptor-data
+#### Persistent Volume
 
----
-# pvc.yaml
+```yaml
+# k8s/pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -571,261 +377,502 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: fast-ssd  # Adjust for your cluster
+```
 
----
-# service.yaml
-apiVersion: v1
-kind: Service
+#### Deployment
+
+```yaml
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: disruptor-metrics
+  name: disruptor
   namespace: disruptor
   labels:
     app: disruptor
 spec:
-  ports:
-  - port: 9090
-    targetPort: 9090
-    name: metrics
+  replicas: 1  # Single replica for Discord bot
+  selector:
+    matchLabels:
+      app: disruptor
+  template:
+    metadata:
+      labels:
+        app: disruptor
+    spec:
+      initContainers:
+      - name: migrate
+        image: ghcr.io/xanderd99/disruptor:latest
+        command: ["/bin/migrate", "up"]
+        envFrom:
+        - configMapRef:
+            name: disruptor-config
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      containers:
+      - name: disruptor
+        image: ghcr.io/xanderd99/disruptor:latest
+        envFrom:
+        - configMapRef:
+            name: disruptor-config
+        - secretRef:
+            name: disruptor-secret
+        ports:
+        - containerPort: 8080
+          name: metrics
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: 1000m
+          requests:
+            memory: 256Mi
+            cpu: 500m
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: disruptor-data
+```
+
+#### Service
+
+```yaml
+# k8s/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: disruptor-service
+  namespace: disruptor
+  labels:
+    app: disruptor
+spec:
   selector:
     app: disruptor
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: metrics
+  type: ClusterIP
 ```
 
-#### Deploy to Kubernetes
+**Deploy to Kubernetes:**
+
 ```bash
-# Apply manifests
-kubectl apply -f namespace.yaml
-kubectl apply -f configmap.yaml
-kubectl apply -f secret.yaml
-kubectl apply -f deployment.yaml
+# Apply all manifests
+kubectl apply -f k8s/
 
-# Check deployment
-kubectl get pods -n disruptor
-kubectl logs -f deployment/disruptor -n disruptor
+# Check deployment status
+kubectl -n disruptor get pods
+kubectl -n disruptor logs deployment/disruptor
 
-# View metrics
-kubectl port-forward service/disruptor-metrics 9090:9090 -n disruptor
+# Port forward for metrics (optional)
+kubectl -n disruptor port-forward service/disruptor-service 8080:8080
 ```
 
----
+## Traditional Server Deployment 🖥️
 
-## Monitoring and Maintenance
+### Systemd Service
 
-### Health Checks
+#### User Setup
 
-#### HTTP Health Check
 ```bash
-# Check metrics endpoint
-curl -f http://localhost:9090/metrics
-echo $?  # Should return 0 if healthy
+# Create disruptor user
+sudo useradd --system --create-home --shell /bin/bash disruptor
+sudo mkdir -p /opt/disruptor/{bin,data,logs}
+sudo chown -R disruptor:disruptor /opt/disruptor
 ```
 
-#### Service Health Check
+#### Installation
+
 ```bash
-# Systemd
-sudo systemctl is-active disruptor
+# Build and install
+git clone https://github.com/XanderD99/disruptor.git
+cd disruptor
+make build build-migrate
 
-# Docker
-docker health check disruptor
-
-# Kubernetes
-kubectl get pods -n disruptor
-```
-
-### Log Management
-
-#### Systemd Logs
-```bash
-# View recent logs
-sudo journalctl -u disruptor -n 100
-
-# Follow logs
-sudo journalctl -u disruptor -f
-
-# Filter by time
-sudo journalctl -u disruptor --since "1 hour ago"
-
-# Search logs
-sudo journalctl -u disruptor | grep ERROR
-```
-
-#### Docker Logs
-```bash
-# View logs
-docker logs disruptor
-
-# Follow logs
-docker logs -f disruptor
-
-# Limit log size
-docker logs --tail 100 disruptor
-```
-
-### Database Maintenance
-
-#### Backup Database
-```bash
-# Systemd deployment
-sudo -u disruptor cp /opt/disruptor/data/disruptor.db /opt/disruptor/data/backup-$(date +%Y%m%d_%H%M%S).db
-
-# Docker deployment
-docker exec disruptor cp /data/disruptor.db /data/backup-$(date +%Y%m%d_%H%M%S).db
-```
-
-#### Database Cleanup
-```bash
-# SQLite vacuum (compact database)
-sqlite3 /path/to/disruptor.db "VACUUM;"
-
-# Check database size
-ls -lh /path/to/disruptor.db
-```
-
-### Updates and Rollbacks
-
-#### Binary Deployment Update
-```bash
-# Build new version
-make build
-
-# Stop service
-sudo systemctl stop disruptor
-
-# Backup old binary
-sudo cp /opt/disruptor/bin/disruptor /opt/disruptor/bin/disruptor.backup
-
-# Install new binary
+# Install binaries
 sudo cp output/bin/disruptor /opt/disruptor/bin/
+sudo cp output/bin/migrate /opt/disruptor/bin/
+sudo cp -r cmd/migrate/migrations /opt/disruptor/
+sudo chown -R disruptor:disruptor /opt/disruptor
+```
 
-# Start service
+#### Service Configuration
+
+```ini
+# /etc/systemd/system/disruptor.service
+[Unit]
+Description=Disruptor Discord Bot
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=disruptor
+Group=disruptor
+WorkingDirectory=/opt/disruptor
+ExecStartPre=/opt/disruptor/bin/migrate up
+ExecStart=/opt/disruptor/bin/disruptor
+EnvironmentFile=/opt/disruptor/.env
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/disruptor/logs/disruptor.log
+StandardError=append:/opt/disruptor/logs/disruptor.log
+SyslogIdentifier=disruptor
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/disruptor/data
+ReadWritePaths=/opt/disruptor/logs
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Environment Configuration
+
+```bash
+# /opt/disruptor/.env
+CONFIG_TOKEN=your_discord_token_here
+CONFIG_DATABASE_DSN=file:/opt/disruptor/data/disruptor.db?cache=shared
+CONFIG_LOGGING_LEVEL=info
+CONFIG_LOGGING_FORMAT=json
+CONFIG_METRICS_ENABLED=true
+CONFIG_METRICS_ADDRESS=0.0.0.0:8080
+```
+
+#### Service Management
+
+```bash
+# Enable and start service
+sudo systemctl daemon-reload
+sudo systemctl enable disruptor
 sudo systemctl start disruptor
 
 # Check status
 sudo systemctl status disruptor
+journalctl -u disruptor -f
+
+# Restart service
+sudo systemctl restart disruptor
 ```
 
-#### Docker Deployment Update
+## Cloud Platform Guides ☁️
+
+### AWS EC2 Deployment
+
+#### EC2 Instance Setup
+
 ```bash
-# Pull new image
-docker pull your-registry/disruptor:latest
+# Launch EC2 instance (Ubuntu 22.04 LTS)
+# t3.micro (1 vCPU, 1GB RAM) is sufficient for most servers
 
-# Stop and remove old container
-docker stop disruptor
-docker rm disruptor
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+sudo usermod -aG docker ubuntu
 
-# Run new container
-docker run -d --name disruptor --env-file .env -v /host/data:/data your-registry/disruptor:latest
-
-# Or with docker-compose
-docker-compose pull
-docker-compose up -d
+# Create deployment directory
+mkdir -p ~/disruptor/{data,logs}
+cd ~/disruptor
 ```
 
-#### Rollback
+#### Docker Compose for AWS
+
+```yaml
+# docker-compose.aws.yml
+version: '3.8'
+
+services:
+  disruptor:
+    image: ghcr.io/xanderd99/disruptor:latest
+    container_name: disruptor
+    restart: unless-stopped
+    environment:
+      - CONFIG_TOKEN=${DISCORD_TOKEN}
+      - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
+      - CONFIG_LOGGING_LEVEL=info
+      - CONFIG_LOGGING_FORMAT=json
+      - CONFIG_METRICS_ENABLED=true
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log/disruptor
+    ports:
+      - "8080:8080"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /aws/ec2/disruptor
+        awslogs-region: us-east-1
+        awslogs-stream: disruptor
+```
+
+### Google Cloud Run
+
+```dockerfile
+# Dockerfile.cloudrun
+FROM ghcr.io/xanderd99/disruptor:latest
+
+# Cloud Run specific configurations
+ENV PORT=8080
+ENV CONFIG_METRICS_ADDRESS=0.0.0.0:8080
+
+EXPOSE 8080
+```
+
 ```bash
-# Systemd rollback
-sudo systemctl stop disruptor
-sudo cp /opt/disruptor/bin/disruptor.backup /opt/disruptor/bin/disruptor
-sudo systemctl start disruptor
-
-# Docker rollback
-docker stop disruptor
-docker rm disruptor
-docker run -d --name disruptor --env-file .env -v /host/data:/data your-registry/disruptor:previous-tag
+# Build and deploy to Cloud Run
+gcloud builds submit --tag gcr.io/PROJECT-ID/disruptor
+gcloud run deploy disruptor \
+  --image gcr.io/PROJECT-ID/disruptor \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars CONFIG_TOKEN=${DISCORD_TOKEN} \
+  --set-env-vars CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
+  --memory 512Mi \
+  --cpu 1 \
+  --max-instances 1
 ```
 
----
+### DigitalOcean App Platform
 
-## Security Considerations
+```yaml
+# .do/app.yaml
+name: disruptor
+services:
+- name: disruptor
+  source_dir: /
+  github:
+    repo: your-username/disruptor
+    branch: main
+  build_command: make docker-build
+  dockerfile_path: ci/Dockerfile
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 8080
+  envs:
+  - key: CONFIG_TOKEN
+    value: ${DISCORD_TOKEN}
+    type: SECRET
+  - key: CONFIG_DATABASE_DSN
+    value: file:/data/disruptor.db?cache=shared
+  - key: CONFIG_LOGGING_LEVEL
+    value: info
+  - key: CONFIG_METRICS_ENABLED
+    value: "true"
+```
+
+## Monitoring & Maintenance 📊
+
+### Health Checks
+
+#### HTTP Health Endpoint
+
+```bash
+# Basic health check
+curl -f http://localhost:8080/health
+
+# Detailed metrics
+curl http://localhost:8080/metrics
+```
+
+#### Custom Health Check Script
+
+```bash
+#!/bin/bash
+# health-check.sh
+
+HEALTH_URL="http://localhost:8080/health"
+DISCORD_CHECK=true
+
+# Check HTTP health endpoint
+if ! curl -f -s "$HEALTH_URL" >/dev/null; then
+    echo "❌ Health endpoint failed"
+    exit 1
+fi
+
+# Check if bot is responsive to Discord
+if [ "$DISCORD_CHECK" = true ]; then
+    # This would require Discord API integration
+    echo "✅ Bot is healthy"
+fi
+
+echo "✅ All health checks passed"
+exit 0
+```
+
+### Log Management
+
+#### Centralized Logging with ELK Stack
+
+```yaml
+# docker-compose.logging.yml
+version: '3.8'
+
+services:
+  disruptor:
+    image: ghcr.io/xanderd99/disruptor:latest
+    # ... other configuration
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: "disruptor"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    environment:
+      - discovery.type=single-node
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+volumes:
+  elasticsearch-data:
+```
+
+### Backup Strategy
+
+#### Database Backup Script
+
+```bash
+#!/bin/bash
+# backup.sh
+
+BACKUP_DIR="/opt/disruptor/backups"
+DB_PATH="/opt/disruptor/data/disruptor.db"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p "$BACKUP_DIR"
+
+# Create backup
+sqlite3 "$DB_PATH" ".backup '$BACKUP_DIR/disruptor_$DATE.db'"
+
+# Compress backup
+gzip "$BACKUP_DIR/disruptor_$DATE.db"
+
+# Cleanup old backups (keep 30 days)
+find "$BACKUP_DIR" -name "disruptor_*.db.gz" -mtime +30 -delete
+
+echo "✅ Backup created: disruptor_$DATE.db.gz"
+```
+
+#### Automated Backup with Cron
+
+```bash
+# Add to crontab
+0 2 * * * /opt/disruptor/scripts/backup.sh >> /opt/disruptor/logs/backup.log 2>&1
+```
+
+## Security Considerations 🔐
+
+### Environment Security
+
+```bash
+# Secure environment file permissions
+chmod 600 /opt/disruptor/.env
+chown disruptor:disruptor /opt/disruptor/.env
+
+# Secure database file permissions
+chmod 600 /opt/disruptor/data/disruptor.db*
+chown disruptor:disruptor /opt/disruptor/data/disruptor.db*
+```
 
 ### Network Security
-- **Firewall**: Only expose necessary ports (9090 for metrics)
-- **TLS**: Use HTTPS for metrics if exposed publicly
-- **VPN**: Consider VPN access for administration
 
-### Access Control
-- **Service User**: Run as dedicated non-root user
-- **File Permissions**: Restrict access to configuration and data files
-- **Container Security**: Use non-root containers
+#### Firewall Configuration
 
-### Secret Management
-- **Environment Variables**: Use for token storage
-- **Secret Stores**: Consider vault solutions for production
-- **Rotation**: Regular token rotation
-
-### Monitoring
-- **Log Analysis**: Monitor for unusual activity
-- **Metrics**: Track resource usage and performance
-- **Alerts**: Set up alerts for service failures
-
----
-
-## Troubleshooting Deployments
-
-### Common Issues
-
-#### Service Won't Start
 ```bash
-# Check service status
-sudo systemctl status disruptor
+# UFW rules for systemd deployment
+sudo ufw allow ssh
+sudo ufw allow 8080/tcp comment 'Disruptor metrics'
+sudo ufw enable
 
-# Check logs
-sudo journalctl -u disruptor -n 50
-
-# Check configuration
-sudo cat /opt/disruptor/.env
-
-# Test binary manually
-sudo -u disruptor /opt/disruptor/bin/disruptor
+# Or more restrictive (metrics only from monitoring server)
+sudo ufw allow from 10.0.0.100 to any port 8080 comment 'Monitoring server'
 ```
 
-#### Container Issues
-```bash
-# Check container status
-docker ps -a
+#### Nginx Reverse Proxy with SSL
 
-# Check logs
-docker logs disruptor
+```nginx
+# /etc/nginx/sites-available/disruptor
+server {
+    listen 443 ssl http2;
+    server_name disruptor.yourdomain.com;
 
-# Check environment
-docker exec disruptor env
+    ssl_certificate /etc/letsencrypt/live/disruptor.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/disruptor.yourdomain.com/privkey.pem;
 
-# Test inside container
-docker exec -it disruptor /bin/sh
+    location /metrics {
+        proxy_pass http://localhost:8080/metrics;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        # Basic authentication for metrics
+        auth_basic "Disruptor Metrics";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+
+    location /health {
+        proxy_pass http://localhost:8080/health;
+        allow 127.0.0.1;
+        allow 10.0.0.0/8;
+        deny all;
+    }
+}
 ```
 
-#### Permission Problems
-```bash
-# Fix ownership
-sudo chown -R disruptor:disruptor /opt/disruptor
+### Container Security
 
-# Fix permissions
-sudo chmod 600 /opt/disruptor/.env
-sudo chmod +x /opt/disruptor/bin/disruptor
-```
-
----
-
-## Performance Optimization
-
-### Resource Limits
-```bash
-# Systemd limits
-[Service]
-MemoryMax=512M
-MemoryHigh=256M
-```
-
-### Database Optimization
-```bash
-CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared&_journal_mode=WAL&_synchronous=NORMAL"
-```
-
-### Go Runtime Tuning
-```bash
-export GOGC=100
-export GOMAXPROCS=2
+```yaml
+# Security-focused Docker Compose
+services:
+  disruptor:
+    image: ghcr.io/xanderd99/disruptor:latest
+    # ... other configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100M
+    user: "65534:65534"  # nobody user
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Only if binding to port < 1024
 ```
 
 ---
 
-**Deployment complete!** 🎉 Your Disruptor bot is now running in production.
+**🎉 Deployment Complete!** Your Disruptor bot is now ready for production use. Remember to monitor logs, maintain backups, and keep the bot updated for the best experience!

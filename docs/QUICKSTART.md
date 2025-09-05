@@ -1,259 +1,138 @@
 # Quick Start Guide 🚀
 
-Get Disruptor up and running in under 10 minutes! This guide covers the fastest path from zero to a working Discord bot.
+Get Disruptor running in 10 minutes! This guide gets you from zero to a working Discord bot that randomly joins voice channels and plays soundboard sounds.
 
-## Prerequisites ✅
+## Prerequisites 📋
 
-Before starting, ensure you have:
-- [Go 1.24+](https://golang.org/dl/) installed
-- [Git](https://git-scm.com/) installed
-- A Discord account
+- [Discord Bot Token](#step-1-create-discord-bot) (free from Discord Developer Portal)
+- **Option A**: [Docker](https://docker.com/get-started) (easiest)
+- **Option B**: [Go 1.25+](https://golang.org/dl/) + [Git](https://git-scm.com/downloads) (for building from source)
 
-## Step 1: Create Discord Bot (3 minutes) 🤖
+## Step 1: Create Discord Bot 🤖
 
-### 1.1 Create Discord Application
-1. Go to https://discord.com/developers/applications
-2. Click "New Application"
-3. Name it "My Disruptor Bot"
-4. Click "Create"
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Click **"New Application"** → Enter name **"Disruptor"**
+3. Navigate to **"Bot"** section → Click **"Add Bot"**
+4. Copy the **Token** (keep this secret!)
+5. Under **"Privileged Gateway Intents"** enable:
+   - ✅ Server Members Intent
+   - ✅ Message Content Intent
 
-### 1.2 Create Bot User
-1. Go to "Bot" section in left sidebar
-2. Click "Add Bot"
-3. Copy the bot token (keep it safe!)
+## Step 2: Invite Bot to Server 🏠
 
-### 1.3 Set Bot Permissions
-1. Go to "OAuth2" → "URL Generator"
-2. Select scopes: `bot` and `applications.commands`
-3. Select permissions:
-   - ✅ View Channels
+1. In **"OAuth2" → "URL Generator"** select:
+   - ✅ **bot**
+   - ✅ **applications.commands**
+2. Under **Bot Permissions** select:
    - ✅ Connect
    - ✅ Speak
-   - ✅ Use Voice Activity
    - ✅ Use Slash Commands
-4. Copy the generated URL
+   - ✅ Manage Guild (for `/weight` command)
+3. Copy the generated URL and open it
+4. Select your server and authorize
 
-### 1.4 Invite Bot to Server
-1. Open the URL from step 1.3
-2. Select your server
-3. Click "Authorize"
+## Step 3A: Run with Docker (Recommended) 🐳
 
-## Step 2: Install Disruptor (2 minutes) 💻
+**Single command setup:**
 
-### Option A: Quick Install (Linux/macOS)
 ```bash
-# Install dependencies (Ubuntu/Debian)
-sudo apt update && sudo apt install -y git make pkg-config libopus-dev golang-go
-
-# Clone and build
-git clone https://github.com/XanderD99/disruptor.git
-cd disruptor
-go mod download
-make build
-```
-
-### Option B: Docker (Any OS)
-```bash
-git clone https://github.com/XanderD99/disruptor.git
-cd disruptor
-make docker-build
-```
-
-## Step 3: Add Soundboard Sounds (1 minute) 🎵
-
-1. Go to your Discord server
-2. Open Server Settings → Soundboard
-3. Upload at least one sound file (.mp3 or .ogg)
-4. Name your sound appropriately
-
-## Step 4: Configure and Run (2 minutes) ⚙️
-
-### Option A: Direct Run
-```bash
-# Set your bot token (replace with your actual token)
-export CONFIG_TOKEN="your_discord_bot_token_here"
-
-# Run the bot
-./output/bin/disruptor
-```
-
-### Option B: Docker Run
-```bash
+# Replace YOUR_BOT_TOKEN with your actual token
 docker run -d --name disruptor \
-  -e CONFIG_TOKEN="your_discord_bot_token_here" \
-  disruptor:latest
+  -e CONFIG_TOKEN="YOUR_BOT_TOKEN" \
+  -e CONFIG_DATABASE_DSN="file:/data/disruptor.db?cache=shared" \
+  -v $(pwd)/data:/data \
+  --restart unless-stopped \
+  ghcr.io/xanderd99/disruptor:latest
 ```
 
-## Step 5: Test the Bot (1 minute) 🧪
+**Or with docker-compose:**
 
-### 5.1 Verify Bot is Online
-- Check your Discord server - the bot should show as online
-- Look for the green dot next to the bot's name
-
-### 5.2 Test Slash Commands
-In your Discord server, type `/` and you should see Disruptor commands:
-- `/play` - Play a soundboard sound immediately  
-- `/interval` - Set disruption interval
-- `/chance` - Set disruption chance
-- `/disconnect` - Stop disruptions
-- `/next` - See next scheduled disruption
-
-### 5.3 Join Voice Channel and Test
-1. Join a voice channel in your server
-2. Type `/play` and select a sound
-3. The bot should join your channel and play the sound
-
-## Success! 🎉
-
-Your Disruptor bot is now running and ready to cause delightful chaos!
-
----
-
-## What's Next?
-
-### Customize Your Bot
-- **Adjust intervals**: Use `/interval 30` to set 30-minute disruption intervals
-- **Set chances**: Use `/chance 0.8` to set 80% chance of disruption
-- **Add more sounds**: Upload more soundboard sounds for variety
-
-### Production Setup
-For running the bot 24/7, see these guides:
-- [Deployment Guide](DEPLOYMENT.md) - Production deployment options
-- [Configuration Guide](CONFIGURATION.md) - Advanced configuration
-- [Installation Guide](INSTALLATION.md) - Platform-specific setup
-
-### Advanced Features
-- **Database persistence**: Set `CONFIG_DATABASE_DSN=file:./disruptor.db?cache=shared`
-- **Logging**: Configure logging levels and Discord webhook notifications
-- **Metrics**: Enable Prometheus metrics for monitoring
-
----
-
-## Common Issues & Quick Fixes
-
-### Bot Won't Connect
 ```bash
-# Check token is set correctly
-echo $CONFIG_TOKEN
-
-# Verify token format (should start with letters/numbers)
-# If using .env file:
-source .env
-./output/bin/disruptor
-```
-
-### No Slash Commands
-- Wait up to 1 hour for commands to sync globally
-- Try kicking and re-inviting the bot
-- Ensure `applications.commands` scope was granted
-
-### Bot Can't Join Voice
-- Check bot has "Connect" and "Speak" permissions
-- Verify voice channel isn't full
-- Ensure bot has access to the voice channel
-
-### No Sounds Playing
-- Upload at least one sound to server soundboard
-- Check sounds are under 5.2MB
-- Verify bot has soundboard permissions
-
----
-
-## One-Command Setup Scripts
-
-### Linux/macOS Setup Script
-```bash
-#!/bin/bash
-# Save as setup.sh and run: chmod +x setup.sh && ./setup.sh
-
-echo "🚀 Disruptor Quick Setup"
-
-# Install dependencies
-if command -v apt >/dev/null; then
-    sudo apt update && sudo apt install -y git make pkg-config libopus-dev golang-go
-elif command -v brew >/dev/null; then
-    brew install go git opus pkg-config
-fi
-
-# Clone and build
-git clone https://github.com/XanderD99/disruptor.git
-cd disruptor
-go mod download
-make build
-
-echo "✅ Setup complete!"
-echo "Next steps:"
-echo "1. Set your bot token: export CONFIG_TOKEN='your_token'"
-echo "2. Run the bot: ./output/bin/disruptor"
-```
-
-### Docker Compose Setup
-```yaml
-# Save as docker-compose.yml
-version: '3.8'
+# Create docker-compose.yml
+cat > docker-compose.yml << 'EOF'
 services:
   disruptor:
-    build: .
+    image: ghcr.io/xanderd99/disruptor:latest
     environment:
-      - CONFIG_TOKEN=${DISCORD_TOKEN}  # Set in .env file
+      - CONFIG_TOKEN=${DISCORD_TOKEN}
       - CONFIG_DATABASE_DSN=file:/data/disruptor.db?cache=shared
+      - CONFIG_LOGGING_LEVEL=info
     volumes:
       - ./data:/data
     restart: unless-stopped
-```
+EOF
 
-```bash
-# Create .env file
-echo "DISCORD_TOKEN=your_discord_bot_token_here" > .env
+# Create .env file with your token
+echo "DISCORD_TOKEN=YOUR_BOT_TOKEN" > .env
 
-# Run
+# Start the bot
 docker-compose up -d
 ```
 
----
+## Step 3B: Build from Source 🔨
 
-## Need Help?
-
-### Quick Links
-- 🔧 [Installation Issues](INSTALLATION.md#troubleshooting-installation)
-- ⚙️ [Configuration Problems](CONFIGURATION.md#configuration-validation)  
-- 🤖 [Discord Setup Help](DISCORD_SETUP.md#common-issues)
-- 🐛 [Troubleshooting Guide](TROUBLESHOOTING.md)
-
-### Support Channels
-- 📖 **Documentation**: Check `/docs/` folder
-- 🐛 **Bug Reports**: Open GitHub issue
-- 💬 **Questions**: Use GitHub Discussions
-- 🚨 **Urgent**: Check troubleshooting guide first
-
----
-
-## Configuration Summary
-
-### Minimal Configuration
 ```bash
-export CONFIG_TOKEN="your_discord_bot_token"
-./output/bin/disruptor
-```
+# Clone and build
+git clone https://github.com/XanderD99/disruptor.git
+cd disruptor
+go mod download
+make build
 
-### Recommended Configuration
-```bash
-export CONFIG_TOKEN="your_discord_bot_token"
+# Run with your token
+export CONFIG_TOKEN="YOUR_BOT_TOKEN"
 export CONFIG_DATABASE_DSN="file:./disruptor.db?cache=shared"
-export CONFIG_LOGGING_LEVEL="info"
 ./output/bin/disruptor
 ```
 
-### Production Configuration
-```bash
-export CONFIG_TOKEN="your_discord_bot_token"
-export CONFIG_DATABASE_DSN="file:/opt/disruptor/data/bot.db?cache=shared"
-export CONFIG_LOGGING_LEVEL="info"
-export CONFIG_LOGGING_PRETTY="false"
-export CONFIG_METRICS_PORT="9090"
-./output/bin/disruptor
-```
+## Step 4: Add Soundboard Sounds 🎵
+
+1. In your Discord server, go to any channel
+2. Right-click → **Server Settings** → **Soundboard**
+3. Click **"Upload Sound"** and add some audio files
+4. Give them fun names!
+
+## Step 5: Test the Bot 🎮
+
+1. Join a voice channel with at least one other person
+2. Use slash commands:
+
+   ```ansii
+   /play                    # Play a sound immediately
+   /interval 30m           # Set disruption interval to 30 minutes
+   /chance 75              # Set 75% disruption chance
+   /weight #channel 80     # Make this channel more likely to be selected
+   /next                   # See when next disruption is scheduled
+   ```
+
+3. Wait for the magic! The bot will randomly join and play sounds
+
+## Default Settings ⚙️
+
+- **Interval**: 1 hour (random disruptions every ~1 hour)
+- **Chance**: 50% (50% probability of disruption per interval)
+- **Channel Weight**: 50 (balanced selection for all channels)
+- **Database**: In-memory (resets on restart)
+
+## Quick Troubleshooting 🔧
+
+| Problem | Solution |
+|---------|----------|
+| Bot won't start | Double-check your `CONFIG_TOKEN` |
+| No slash commands | Wait up to 1 hour for Discord to sync, or re-invite bot |
+| Bot won't join voice | Ensure bot has **Connect** and **Speak** permissions |
+| No sounds play | Upload sounds to your server's Discord soundboard |
+| Bot leaves immediately | Need at least 1 other person in the voice channel |
+
+## What's Next? 🎯
+
+- **Customize disruptions**: Adjust `/interval` and `/chance` per your server's vibe
+- **Set channel weights**: Use `/weight` to make certain channels more/less likely
+- **Monitor activity**: Check Docker logs with `docker logs disruptor`
+- **Advanced setup**: See [Setup Guide](SETUP.md) for detailed configuration
+- **Production deployment**: See [Deployment Guide](DEPLOYMENT.md)
 
 ---
 
-**Happy disrupting!** 🎭 Your bot is ready to bring delightful chaos to your Discord server!
+**🎉 Congratulations!** Your Discord server is now delightfully disrupted. Enjoy the chaos responsibly!
+
+**Need help?** Check out the [full documentation](README.md) or [create an issue](https://github.com/XanderD99/disruptor/issues).
