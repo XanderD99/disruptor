@@ -58,6 +58,9 @@ lint: ## Lint
 build: ## Build the app
 	go build -o $(BIN_OUTPUT_DIR)/$(PACKAGE)$(PACKAGE_EXTENSION) --ldflags=$(LDFLAGS) $(BUILD_FLAGS)
 
+build-migrate: ## Build the migrate command
+	go build -o $(BIN_OUTPUT_DIR)/migrate ./cmd/migrate
+
 run: ## Run the app
 	$(BIN_OUTPUT_DIR)/$(PACKAGE)$(PACKAGE_EXTENSION)
 
