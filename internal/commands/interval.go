@@ -58,7 +58,7 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	guild := models.Guild{Snowflake: *guildID}
+	guild := models.Guild{ID: *guildID}
 	if err := i.db.NewSelect().Model(&guild).WherePK().Scan(event.Ctx, &guild); err != nil {
 		logger.WarnContext(event.Ctx, "failed to find guild, creating new one", "error", err)
 		guild = models.NewGuild(*guildID)

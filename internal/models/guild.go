@@ -1,42 +1,31 @@
 package models
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/uptrace/bun"
+)
+
+const (
+	defaultInterval = time.Hour
+	defaultChance   = 40
 )
 
 func NewGuild(snowflake snowflake.ID) Guild {
 	return Guild{
-		Snowflake: snowflake,
-		Interval:  time.Hour,
-		Chance:    40,
+		ID:       snowflake,
+		Interval: defaultInterval,
+		Chance:   defaultChance,
 	}
 }
 
 type Guild struct {
-	Snowflake snowflake.ID  `bun:"snowflake,pk" validate:"required"`        // snowflake ID of the guild
-	Chance    Chance        `bun:"chance" validate:"required,gt=0,lte=100"` // chance of a sound being played
-	Interval  time.Duration `bun:"interval" validate:"required"`            // interval between sounds
+	ID       snowflake.ID  `bun:"id,pk" validate:"required"`               // snowflake ID of the guild
+	Chance   Chance        `bun:"chance" validate:"required,gt=0,lte=100"` // chance of a sound being played
+	Interval time.Duration `bun:"interval" validate:"required"`            // interval between sounds
 
-	CreatedAt time.Time `bun:"created_at,nullzero,default:current_timestamp" validate:"required"` // when the guild was created
-	UpdatedAt time.Time `bun:"updated_at,nullzero,default:current_timestamp" validate:"required"` // when the guild was last updated
-	DeletedAt time.Time `bun:"deleted_at,soft_delete,nullzero" validate:"required"`               // when the guild was deleted
-}
-
-var _ bun.BeforeAppendModelHook = (*Guild)(nil)
-
-func (m *Guild) BeforeAppendModel(ctx context.Context, query bun.Query) error {
-	switch query.(type) {
-	case *bun.InsertQuery:
-		m.CreatedAt = time.Now()
-	case *bun.UpdateQuery:
-		m.UpdatedAt = time.Now()
-	}
-	return nil
+	Channels []Channel `bun:"rel:has-many,join:id=guild_id"` // channels in the guild
 }
 
 type Chance int

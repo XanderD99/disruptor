@@ -48,7 +48,7 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 		return fmt.Errorf("guild ID is required for this command")
 	}
 
-	guild := models.Guild{Snowflake: *guildID}
+	guild := models.Guild{ID: *guildID}
 	if err := p.db.NewSelect().Model(&guild).Where("snowflake = ?", *guildID).Scan(e.Ctx, &guild); err != nil {
 		return fmt.Errorf("failed to find guild: %w", err)
 	}

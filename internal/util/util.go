@@ -49,11 +49,7 @@ func PlaySound(ctx context.Context, client bot.Client, guildID, channelID snowfl
 	defer rs.Body.Close()
 
 	// Stream through ffmpeg to get Opus frames
-	opusProvider, err := ffmpeg.New(ctx, rs.Body)
-	if err != nil {
-		return fmt.Errorf("error creating opus provider: %w", err)
-	}
-	defer opusProvider.Close()
+	opusProvider := ffmpeg.New(ctx, rs.Body)
 
 	conn.SetOpusFrameProvider(opusProvider)
 

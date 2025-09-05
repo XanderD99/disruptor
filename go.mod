@@ -1,15 +1,13 @@
 module github.com/XanderD99/disruptor
 
-go 1.24.2
-
-replace github.com/disgoorg/ffmpeg-audio => github.com/XanderD99/ffmpeg-audio v0.0.0-20250822182349-0672796dff51
+go 1.24.5
 
 require (
 	github.com/XanderD99/bunslog v0.1.0
 	github.com/betrayy/slog-discord v0.1.0
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/disgoorg/disgo v0.18.16
-	github.com/disgoorg/ffmpeg-audio v0.0.0-00010101000000-000000000000
+	github.com/disgoorg/ffmpeg-audio v0.0.0-20250829163925-73409e4eab51
 	github.com/disgoorg/json v1.2.0
 	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c
 	github.com/disgoorg/snowflake/v2 v2.0.3
@@ -20,6 +18,7 @@ require (
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.15
 	github.com/uptrace/bun/driver/sqliteshim v1.2.15
 	github.com/uptrace/bun/extra/bunotel v1.2.15
+	github.com/urfave/cli/v2 v2.27.7
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.59.1
 	go.opentelemetry.io/otel/metric v1.37.0
@@ -30,6 +29,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g4s8/envdoc v1.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -50,6 +50,7 @@ require (
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/samber/lo v1.51.0 // indirect
 	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/sasha-s/go-csync v0.0.0-20240107134140-fcbab37b09ad // indirect
@@ -57,6 +58,7 @@ require (
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.3.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect

@@ -20,7 +20,7 @@ func GuildLeave(l *slog.Logger, db *bun.DB, m *scheduler.Manager) func(*events.G
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if _, err := db.NewDelete().Model(&models.Guild{Snowflake: gr.Guild.ID}).Exec(ctx); err != nil {
+		if _, err := db.NewDelete().Model(&models.Guild{ID: gr.Guild.ID}).Exec(ctx); err != nil {
 			l.Error("Failed to remove guild from store", slog.Any("error", err))
 		}
 	}

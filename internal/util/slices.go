@@ -9,6 +9,14 @@ func Filter[T any](ss []T, test func(T) bool) (ret []T) {
 	return
 }
 
+func Random[T any](ss []T) T {
+	if len(ss) == 0 {
+		var zero T
+		return zero
+	}
+	return ss[RandomInt(0, len(ss)-1)]
+}
+
 func Chunk[T any](slice []T, size int) [][]T {
 	if size <= 0 {
 		return nil

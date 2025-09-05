@@ -20,7 +20,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/listeners"
 	"github.com/XanderD99/disruptor/internal/metrics"
-	"github.com/XanderD99/disruptor/internal/models"
+	"github.com/XanderD99/disruptor/internal/middlewares"
 	"github.com/XanderD99/disruptor/internal/otel"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
@@ -28,6 +28,7 @@ import (
 	"github.com/XanderD99/disruptor/pkg/processes"
 )
 
+//nolint:gocyclo
 func main() {
 	// Note: Context cancellation and graceful shutdown are handled by processes.Manager.
 	// This keeps main.go focused on initialization and wiring.
@@ -133,11 +134,6 @@ func initDatabase(cfg Config, logger *slog.Logger) (*processes.ProcessGroup, *bu
 	// Add slog hook for logging (without custom metrics)
 	database.AddQueryHook(bunslog.NewQueryHook(bunslog.WithLogger(logger)))
 
-	group.AddProcessWithCtx("database", func(ctx context.Context) error {
-		_, err := database.NewCreateTable().IfNotExists().Model(&models.Guild{}).Exec(ctx)
-		return err
-	}, false, nil)
-
 	return group, database, nil
 }
 
@@ -146,6 +142,11 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 
 	session, err := disruptor.New(
 		cfg.Disruptor,
+		disruptor.WithMiddlewares(
+			middlewares.Otel,
+			middlewares.Logger,
+			middlewares.GoErrDefer,
+		),
 		disruptor.WithCommands(
 			commands.Play(),
 			commands.Disconnect(),
@@ -153,6 +154,7 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 			commands.Next(db, scheduleManager),
 			commands.Interval(db, scheduleManager),
 			commands.Chance(db),
+			commands.Weight(db),
 		),
 	)
 	if err != nil {

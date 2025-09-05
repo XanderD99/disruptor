@@ -2,6 +2,8 @@ package listeners
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -39,9 +41,12 @@ type guildReadyTask struct {
 func (t guildReadyTask) Execute(ctx context.Context) error {
 	guild := models.NewGuild(t.guildID)
 
-	_, err := t.db.NewInsert().Model(&guild).On("CONFLICT (snowflake) DO NOTHING").Exec(ctx, &guild)
-	if err != nil {
-		return err
+	if err := t.db.NewInsert().Model(&guild).Ignore().Scan(ctx); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("failed to insert guild %s into database: %w", t.guildID, err)
+	}
+
+	if err := t.db.NewSelect().Model(&guild).WherePK().Scan(ctx); err != nil {
+		return fmt.Errorf("failed to fetch guild %s from database: %w", t.guildID, err)
 	}
 
 	if err := t.manager.AddScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval); err != nil {

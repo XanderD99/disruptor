@@ -34,7 +34,6 @@ func NewRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 }
 
 func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler.HandleFunc {
-	// Import the metrics package at the top if not already imported
 	originalHandler := func(ctx context.Context) error {
 		chance := util.RandomFloat(0, 100) // Use float for better precision
 
@@ -43,7 +42,6 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 			return fmt.Errorf("failed to get interval from context")
 		}
 
-		// Create a context with timeout for this batch
 		guilds, err := getEligibleGuilds(ctx, db, interval, chance)
 		if err != nil {
 			return fmt.Errorf("failed to find guilds: %w", err)
@@ -51,10 +49,9 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 
 		maxWorkers := int(math.Max(1, math.Sqrt(float64(len(guilds)))))
 
-		// Process guilds with worker pool
 		return util.ProcessWithWorkerPool(ctx, guilds, maxWorkers, func(ctx context.Context, guild models.Guild) {
-			if err := processGuild(ctx, session, guild.Snowflake); err != nil {
-				session.Logger().ErrorContext(ctx, "Failed to process guild", slog.Any("guild.id", guild.Snowflake), slog.Any("error", err))
+			if err := processGuild(ctx, session, guild); err != nil {
+				session.Logger().ErrorContext(ctx, "Failed to process guild", slog.Any("guild.id", guild.ID), slog.Any("error", err))
 			}
 		})
 	}
@@ -63,68 +60,100 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 	return metrics.WithJobMetrics(HandlerTypeRandomVoiceJoin, originalHandler)
 }
 
-func processGuild(ctx context.Context, session *disruptor.Session, guild snowflake.ID) error {
+func processGuild(ctx context.Context, session *disruptor.Session, guild models.Guild) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
 	}
 
-	if _, ok := session.Caches().Guild(guild); !ok {
+	if _, ok := session.Caches().Guild(guild.ID); !ok {
 		return nil // Skip if guild is not in cache
 	}
 
 	// Get available voice channels
-	channels, err := getAvailableVoiceChannels(ctx, session, guild)
+	channelID, err := determineVoiceChannelID(ctx, session, guild)
 	if err != nil {
-		return fmt.Errorf("failed to get channels for guild %s: %w", guild, err)
+		return fmt.Errorf("failed to get channels for guild %s: %w", guild.ID, err)
 	}
-
-	if len(channels) == 0 {
-		return nil // No available channels, skip
-	}
-
-	// Select a random channel
-	channelID := randomChannelID(channels)
 
 	// Record voice connection attempt
 	audioMetrics := metrics.NewAudioMetrics()
 
-	sound, err := util.GetRandomSound(session.Client, guild)
+	sound, err := util.GetRandomSound(session.Client, guild.ID)
 	if err != nil {
-		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
+		audioMetrics.RecordVoiceConnectionAttempt(guild.ID, false)
 		return fmt.Errorf("failed to get random sound: %w", err)
 	}
 
-	if err := util.PlaySound(ctx, session.Client, guild, channelID, sound.URL()); err != nil {
-		audioMetrics.RecordVoiceConnectionAttempt(guild, false)
+	if err := util.PlaySound(ctx, session.Client, guild.ID, channelID, sound.URL()); err != nil {
+		audioMetrics.RecordVoiceConnectionAttempt(guild.ID, false)
 		return fmt.Errorf("failed to play sound: %w", err)
 	}
 
-	audioMetrics.RecordVoiceConnectionAttempt(guild, true)
+	audioMetrics.RecordVoiceConnectionAttempt(guild.ID, true)
 	return nil
 }
 
-func randomChannelID(channels []discord.GuildChannel) snowflake.ID {
-	return channels[util.RandomInt(0, len(channels)-1)].ID()
+func determineVoiceChannelID(ctx context.Context, session *disruptor.Session, guild models.Guild) (snowflake.ID, error) {
+	available, err := getAvailableVoiceChannels(ctx, session, guild)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(available) == 0 {
+		return 0, fmt.Errorf("no available voice channels")
+	}
+
+	if len(available) == 1 {
+		return available[0], nil // Only one available channel, return it
+	}
+
+	// Build weights map from guild.Channels, default to .5
+	weights := make([]float64, len(available))
+	for i, channelID := range available {
+		weight := .5
+		for _, ch := range guild.Channels {
+			if ch.ID == channelID && ch.Weight > 0 {
+				weight = ch.Weight
+				break
+			}
+		}
+		weights[i] = weight
+	}
+
+	// Weighted random selection
+	total := 0.0
+	for _, w := range weights {
+		total += w
+	}
+	r := util.RandomFloat(0, total)
+	for i, w := range weights {
+		if r < w {
+			return available[i], nil
+		}
+		r -= w
+	}
+
+	return available[0], nil // fallback
 }
 
-func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, guildID snowflake.ID) ([]discord.GuildChannel, error) {
-	if session.Caches().GuildSoundboardSoundsLen(guildID) == 0 {
+func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, guild models.Guild) ([]snowflake.ID, error) {
+	if session.Caches().GuildSoundboardSoundsLen(guild.ID) == 0 {
 		return nil, fmt.Errorf("there are no soundboard sounds available")
 	}
 
-	channels, err := session.Rest().GetGuildChannels(guildID, rest.WithCtx(ctx))
+	channels, err := session.Rest().GetGuildChannels(guild.ID, rest.WithCtx(ctx))
 	if err != nil {
 		return nil, err
 	}
 
-	member, ok := session.Caches().Member(guildID, session.ID())
+	member, ok := session.Caches().Member(guild.ID, session.ID())
 	if !ok {
-		return nil, fmt.Errorf("bot is not a member of the guild %s", guildID)
+		return nil, fmt.Errorf("bot is not a member of the guild %s", guild.ID)
 	}
 
-	filtered := make([]discord.GuildChannel, 0, len(channels))
+	filtered := make([]snowflake.ID, 0)
 	for _, channel := range channels {
 		if channel.Type() != discord.ChannelTypeGuildVoice {
 			continue
@@ -144,7 +173,7 @@ func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, 
 			continue
 		}
 
-		filtered = append(filtered, channel)
+		filtered = append(filtered, channel.ID())
 	}
 
 	return filtered, nil
@@ -152,7 +181,7 @@ func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, 
 
 func getEligibleGuilds(ctx context.Context, db *bun.DB, interval time.Duration, chance float64) ([]models.Guild, error) {
 	guilds := make([]models.Guild, 0)
-	if err := db.NewSelect().Model(&guilds).Where("chance <= ? AND interval = ?", chance, interval).Scan(ctx, &guilds); err != nil {
+	if err := db.NewSelect().Model(&guilds).Where("chance <= ? AND interval = ?", chance, interval).Relation("Channels").Scan(ctx); err != nil {
 		return nil, fmt.Errorf("failed to find eligible guilds: %w", err)
 	}
 

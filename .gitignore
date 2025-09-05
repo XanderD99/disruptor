@@ -282,3 +282,5 @@ bin/**
 output/**
 templater.md
 .makerc
+
+.tmp/

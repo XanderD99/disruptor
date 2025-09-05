@@ -10,8 +10,6 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
 	"github.com/disgoorg/snowflake/v2"
-
-	"github.com/XanderD99/disruptor/internal/disruptor/middlewares"
 )
 
 // Session represents the Discord bot
@@ -20,10 +18,17 @@ type Session struct {
 }
 
 type opts struct {
-	commands []Command
+	commands    []Command
+	middlewares []handler.Middleware
 }
 
 type optFunc func(*opts)
+
+func WithMiddlewares(middlewares ...handler.Middleware) optFunc {
+	return func(o *opts) {
+		o.middlewares = append(o.middlewares, middlewares...)
+	}
+}
 
 func WithCommands(commands ...Command) optFunc {
 	return func(o *opts) {
@@ -39,11 +44,7 @@ func New(cfg Config, optFuncs ...optFunc) (*Session, error) {
 	}
 
 	router := handler.New()
-	router.Use(
-		middlewares.Otel,
-		middlewares.Logger,
-		middlewares.GoErrDefer,
-	)
+	router.Use(opts.middlewares...)
 
 	options := []bot.ConfigOpt{}
 	options = append(options, bot.WithEventListeners(router))

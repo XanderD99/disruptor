@@ -73,9 +73,7 @@ func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.Comma
 	if _, err := event.UpdateInteractionResponse(response); err != nil {
 		return fmt.Errorf("failed to update interaction response: %w", err)
 	}
-
-	// fire and forget. If we don't do that here the sound could play longer than the max amount of time that discord allows between interaction and response
-	go func() {
+	go func() { // fire and forget. If we don't do that here the sound could play longer than the max amount of time that discord allows between interaction and response
 		if err := util.PlaySound(event.Ctx, client, *event.GuildID(), *voiceState.ChannelID, sound.URL()); err != nil {
 			logger.ErrorContext(event.Ctx, "failed to play sound", "error", err)
 		}

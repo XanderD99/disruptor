@@ -8,6 +8,9 @@
       "request": "launch",
       "type": "go",
       "envFile": "${workspaceFolder}/configs/.env",
+      "env": {
+        "CONFIG_DATABASE_DSN": "file:${workspaceFolder}/.tmp/database.db?cache=shared"
+      }
     },
   ],
   "version": "0.2.0"

@@ -53,7 +53,7 @@ func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.Com
 		return fmt.Errorf("this command can only be used in a guild")
 	}
 
-	guild := models.Guild{Snowflake: *guildID}
+	guild := models.Guild{ID: *guildID}
 	if err := c.db.NewSelect().Model(&guild).WherePK().Scan(event.Ctx, &guild); err != nil {
 		guild = models.NewGuild(*guildID)
 	}
