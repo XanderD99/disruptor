@@ -29,7 +29,7 @@ RUN apk add --no-cache opus ffmpeg
 
 # Copy only the built binary from the builder stage
 COPY --from=builder /app/output/bin/disruptor /bin/disruptor
-COPY --from=builder /app/output/bin/disruptor /bin/migrate
+COPY --from=builder /app/output/bin/migrate /bin/migrate
 
 # Create a non-root user to run the application
 RUN adduser -D -H -h /app disruptor
