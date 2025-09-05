@@ -19,7 +19,9 @@ RUN go test -v ./... -coverprofile=coverage.out || (echo "❌ Unit tests failed!
 
 # Build step - Only runs if tests pass
 FROM init AS builder
-RUN make build
+
+RUN go build -o /app/output/bin/disruptor --ldflags="-s -w" -trimpath ./cmd/disruptor
+RUN go build -o /app/output/bin/migrate --ldflags="-s -w" -trimpath ./cmd/migrate
 
 FROM alpine:3.19 AS final
 
@@ -27,6 +29,7 @@ RUN apk add --no-cache opus ffmpeg
 
 # Copy only the built binary from the builder stage
 COPY --from=builder /app/output/bin/disruptor /bin/disruptor
+COPY --from=builder /app/output/bin/disruptor /bin/migrate
 
 # Create a non-root user to run the application
 RUN adduser -D -H -h /app disruptor

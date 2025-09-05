@@ -2,6 +2,8 @@ module github.com/XanderD99/disruptor
 
 go 1.24.5
 
+replace github.com/disgoorg/ffmpeg-audio => github.com/XanderD99/ffmpeg-audio v0.0.0-20250905131505-5e49308e1ec6
+
 require (
 	github.com/XanderD99/bunslog v0.1.0
 	github.com/betrayy/slog-discord v0.1.0
