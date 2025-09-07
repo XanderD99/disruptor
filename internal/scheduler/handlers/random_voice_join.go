@@ -51,7 +51,7 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 
 		return util.ProcessWithWorkerPool(ctx, guilds, maxWorkers, func(ctx context.Context, guild models.Guild) {
 			if err := processGuild(ctx, session, guild); err != nil {
-				session.Logger().ErrorContext(ctx, "Failed to process guild", slog.Any("guild.id", guild.ID), slog.Any("error", err))
+				session.Logger.ErrorContext(ctx, "Failed to process guild", slog.Any("guild.id", guild.ID), slog.Any("error", err))
 			}
 		})
 	}
@@ -67,7 +67,7 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild models.
 	default:
 	}
 
-	if _, ok := session.Caches().Guild(guild.ID); !ok {
+	if _, ok := session.Caches.Guild(guild.ID); !ok {
 		return nil // Skip if guild is not in cache
 	}
 
@@ -139,16 +139,16 @@ func determineVoiceChannelID(ctx context.Context, session *disruptor.Session, gu
 }
 
 func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, guild models.Guild) ([]snowflake.ID, error) {
-	if session.Caches().GuildSoundboardSoundsLen(guild.ID) == 0 {
+	if session.Caches.GuildSoundboardSoundsLen(guild.ID) == 0 {
 		return nil, fmt.Errorf("there are no soundboard sounds available")
 	}
 
-	channels, err := session.Rest().GetGuildChannels(guild.ID, rest.WithCtx(ctx))
+	channels, err := session.Rest.GetGuildChannels(guild.ID, rest.WithCtx(ctx))
 	if err != nil {
 		return nil, err
 	}
 
-	member, ok := session.Caches().Member(guild.ID, session.ID())
+	member, ok := session.Caches.Member(guild.ID, session.ID())
 	if !ok {
 		return nil, fmt.Errorf("bot is not a member of the guild %s", guild.ID)
 	}
@@ -159,17 +159,17 @@ func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, 
 			continue
 		}
 
-		voiceChannel, ok := session.Caches().GuildVoiceChannel(channel.ID())
+		voiceChannel, ok := session.Caches.GuildVoiceChannel(channel.ID())
 		if !ok {
 			continue
 		}
 
-		permissions := session.Caches().MemberPermissionsInChannel(voiceChannel, member)
+		permissions := session.Caches.MemberPermissionsInChannel(voiceChannel, member)
 		if !util.HasVoicePermissions(permissions) {
 			continue
 		}
 
-		if len(session.Caches().AudioChannelMembers(voiceChannel)) == 0 {
+		if len(session.Caches.AudioChannelMembers(voiceChannel)) == 0 {
 			continue
 		}
 

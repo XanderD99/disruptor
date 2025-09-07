@@ -15,7 +15,7 @@ var Logger handler.Middleware = func(next handler.Handler) handler.Handler {
 	return func(event *handler.InteractionEvent) error {
 		// Start timer for interaction handling
 
-		logger := event.Client().Logger().With(
+		logger := event.Client().Logger.With(
 			slog.Group("interaction", slog.Any("id", event.Interaction.ID())),
 			slog.Group("channel", slog.Any("id", event.Channel().ID())),
 			slog.Group("guild", slog.Any("id", event.GuildID())),

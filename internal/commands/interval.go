@@ -6,7 +6,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/json"
+	"github.com/disgoorg/omit"
 	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
@@ -39,7 +39,7 @@ func (i interval) Options() discord.SlashCommandCreate {
 	return discord.SlashCommandCreate{
 		Name:                     "interval",
 		Description:              "Set the interval for the audio scheduler",
-		DefaultMemberPermissions: json.NewNullablePtr(discord.PermissionManageGuild),
+		DefaultMemberPermissions: omit.NewPtr(discord.PermissionManageGuild),
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionString{
 				Name:        "duration",

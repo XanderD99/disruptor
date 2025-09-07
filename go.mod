@@ -4,13 +4,15 @@ go 1.24.5
 
 replace github.com/disgoorg/ffmpeg-audio => github.com/XanderD99/ffmpeg-audio v0.0.0-20250905131505-5e49308e1ec6
 
+replace github.com/betrayy/slog-discord => github.com/XanderD99/slog-discord v0.0.0-20250905192615-267436a0eab9
+
 require (
 	github.com/XanderD99/bunslog v0.1.0
 	github.com/betrayy/slog-discord v0.1.0
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/disgoorg/disgo v0.18.16
+	github.com/disgoorg/disgo v0.19.0-rc.3
 	github.com/disgoorg/ffmpeg-audio v0.0.0-20250829163925-73409e4eab51
-	github.com/disgoorg/json v1.2.0
+	github.com/disgoorg/omit v1.0.0
 	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/lmittmann/tint v1.1.2
@@ -32,6 +34,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/disgoorg/json/v2 v2.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/g4s8/envdoc v1.6.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -64,10 +67,10 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc // indirect
 	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect

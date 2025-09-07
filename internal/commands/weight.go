@@ -7,7 +7,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/json"
+	"github.com/disgoorg/omit"
 	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
@@ -38,7 +38,7 @@ func (w weight) Options() discord.SlashCommandCreate {
 	return discord.SlashCommandCreate{
 		Name:                     "weight",
 		Description:              "Changes the chance of a channel being selected for random voice joins.",
-		DefaultMemberPermissions: json.NewNullablePtr(discord.PermissionManageGuild),
+		DefaultMemberPermissions: omit.NewPtr(discord.PermissionManageGuild),
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionChannel{
 				Name:         "channel",

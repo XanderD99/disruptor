@@ -17,11 +17,12 @@ func HasVoicePermissions(permissions discord.Permissions) bool {
 	return permissions.Has(discord.PermissionSpeak, discord.PermissionConnect, discord.PermissionViewChannel)
 }
 
-func GetRandomSound(client bot.Client, guildID snowflake.ID) (discord.SoundboardSound, error) {
+func GetRandomSound(client *bot.Client, guildID snowflake.ID) (discord.SoundboardSound, error) {
 	sounds := make([]discord.SoundboardSound, 0)
-	client.Caches().GuildSoundboardSoundsForEach(guildID, func(soundboardSound discord.SoundboardSound) {
-		sounds = append(sounds, soundboardSound)
-	})
+
+	for sound := range client.Caches.GuildSoundboardSounds(guildID) {
+		sounds = append(sounds, sound)
+	}
 
 	if len(sounds) == 0 {
 		return discord.SoundboardSound{}, fmt.Errorf("no soundboard sounds available")
@@ -31,8 +32,8 @@ func GetRandomSound(client bot.Client, guildID snowflake.ID) (discord.Soundboard
 	return sounds[index], nil
 }
 
-func PlaySound(ctx context.Context, client bot.Client, guildID, channelID snowflake.ID, url string) error {
-	conn := client.VoiceManager().CreateConn(guildID)
+func PlaySound(ctx context.Context, client *bot.Client, guildID, channelID snowflake.ID, url string) error {
+	conn := client.VoiceManager.CreateConn(guildID)
 
 	if err := conn.Open(ctx, channelID, false, true); err != nil {
 		return fmt.Errorf("error connecting to voice channel: %w", err)

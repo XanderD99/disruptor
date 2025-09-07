@@ -366,13 +366,13 @@ func DefaultGuild(id snowflake.ID) *Guild {
 
 ```go
 // Use structured logging
-session.Logger().InfoContext(ctx, "Processing guild",
+session.LoggerInfoContext(ctx, "Processing guild",
     slog.Any("guild.id", guild.ID),
     slog.Int("channels", len(channels)),
 )
 
 // Debug level for detailed info
-session.Logger().DebugContext(ctx, "Channel selection",
+session.LoggerDebugContext(ctx, "Channel selection",
     slog.Any("available", available),
     slog.Any("weights", weights),
 )

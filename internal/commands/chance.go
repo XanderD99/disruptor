@@ -5,7 +5,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/handler"
-	"github.com/disgoorg/json"
+	"github.com/disgoorg/omit"
 	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
@@ -34,7 +34,7 @@ func (c chance) Options() discord.SlashCommandCreate {
 	return discord.SlashCommandCreate{
 		Name:                     "chance",
 		Description:              "Set the chance of an event occurring",
-		DefaultMemberPermissions: json.NewNullablePtr(discord.PermissionManageGuild),
+		DefaultMemberPermissions: omit.NewPtr(discord.PermissionManageGuild),
 		Options: []discord.ApplicationCommandOption{
 			discord.ApplicationCommandOptionInt{
 				Name:        "percentage",

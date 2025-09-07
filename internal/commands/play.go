@@ -36,26 +36,26 @@ func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.Comma
 
 	client := event.Client()
 
-	voiceState, ok := client.Caches().VoiceState(*event.GuildID(), event.User().ID)
+	voiceState, ok := client.Caches.VoiceState(*event.GuildID(), event.User().ID)
 	if !ok {
 		return fmt.Errorf("you need to be in a voice channel to use this command")
 	}
 
-	if client.Caches().GuildSoundboardSoundsLen(*event.GuildID()) == 0 {
+	if client.Caches.GuildSoundboardSoundsLen(*event.GuildID()) == 0 {
 		return fmt.Errorf("there are no soundboard sounds available")
 	}
 
-	me, ok := client.Caches().Member(*event.GuildID(), event.Client().ID())
+	me, ok := client.Caches.Member(*event.GuildID(), event.Client().ID())
 	if !ok {
 		return fmt.Errorf("could not find myself in guild cache")
 	}
 
-	channel, ok := client.Caches().Channel(*voiceState.ChannelID)
+	channel, ok := client.Caches.Channel(*voiceState.ChannelID)
 	if !ok {
 		return fmt.Errorf("could not find voice channel in cache")
 	}
 
-	permissions := client.Caches().MemberPermissionsInChannel(channel, me)
+	permissions := client.Caches.MemberPermissionsInChannel(channel, me)
 	if !util.HasVoicePermissions(permissions) {
 		return fmt.Errorf("I need the `SPEAK`, `CONNECT`, and `VIEW_CHANNEL` permissions to use this command")
 	}

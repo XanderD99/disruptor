@@ -14,7 +14,7 @@ import (
 
 // Session represents the Discord bot
 type Session struct {
-	bot.Client
+	*bot.Client
 }
 
 type opts struct {
