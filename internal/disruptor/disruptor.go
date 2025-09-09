@@ -12,8 +12,8 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 )
 
-// Session represents the Discord bot
-type Session struct {
+// Disruptor represents the Discord bot
+type Disruptor struct {
 	*bot.Client
 }
 
@@ -37,7 +37,7 @@ func WithCommands(commands ...Command) optFunc {
 }
 
 // New creates a new Discord bot with sharding support
-func New(cfg Config, optFuncs ...optFunc) (*Session, error) {
+func New(cfg Config, optFuncs ...optFunc) (*Disruptor, error) {
 	opts := new(opts)
 	for _, o := range optFuncs {
 		o(opts)
@@ -74,17 +74,17 @@ func New(cfg Config, optFuncs ...optFunc) (*Session, error) {
 		return nil, fmt.Errorf("error while syncing commands: %w", err)
 	}
 
-	return &Session{Client: c}, nil
+	return &Disruptor{Client: c}, nil
 }
 
-func (s *Session) Open(ctx context.Context) error {
+func (s *Disruptor) Open(ctx context.Context) error {
 	if err := s.Client.OpenShardManager(ctx); err != nil {
 		return fmt.Errorf("failed to open Discord session: %w", err)
 	}
 	return nil
 }
 
-func (s *Session) Close() error {
+func (s *Disruptor) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

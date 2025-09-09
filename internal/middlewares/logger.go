@@ -13,8 +13,6 @@ var Otel = oteldisgo.Middleware("disruptor")
 
 var Logger handler.Middleware = func(next handler.Handler) handler.Handler {
 	return func(event *handler.InteractionEvent) error {
-		// Start timer for interaction handling
-
 		logger := event.Client().Logger.With(
 			slog.Group("interaction", slog.Any("id", event.Interaction.ID())),
 			slog.Group("channel", slog.Any("id", event.Channel().ID())),
@@ -24,16 +22,11 @@ var Logger handler.Middleware = func(next handler.Handler) handler.Handler {
 		// Add logger to context
 		event.Ctx = logging.AddToContext(event.Ctx, logger)
 
-		logger.DebugContext(event.Ctx, "handling interaction", slog.Any("interaction", event.Interaction), slog.Any("variables", event.Vars))
-
-		err := next(event)
-
-		if err != nil {
-			logger.ErrorContext(event.Ctx, "error handling interaction", slog.Any("error", err))
-		} else {
-			logger.InfoContext(event.Ctx, "interaction handled successfully")
+		logger.DebugContext(event.Ctx, "handling interaction")
+		if err := next(event); err != nil {
+			logger.ErrorContext(event.Ctx, "interaction failed", slog.Any("error", err))
+			return err
 		}
-
-		return err
+		return nil
 	}
 }

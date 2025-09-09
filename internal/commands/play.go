@@ -13,9 +13,7 @@ import (
 
 type play struct{}
 
-func Play() disruptor.Command {
-	return play{}
-}
+func Play() disruptor.Command { return play{} }
 
 // Load implements disruptor.Command.
 func (p play) Load(r handler.Router) {
@@ -32,7 +30,7 @@ func (p play) Options() discord.SlashCommandCreate {
 
 func (p play) handle(_ discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
 	// Get logger from context (added by the middleware)
-	logger := logging.GetFromContext(event.Ctx)
+	logger := logging.FromContext(event.Ctx)
 
 	client := event.Client()
 

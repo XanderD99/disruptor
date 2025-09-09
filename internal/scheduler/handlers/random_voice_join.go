@@ -20,7 +20,7 @@ import (
 
 const HandlerTypeRandomVoiceJoin = "random_voice_join"
 
-func NewRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler.HandleFunc {
+func NewRandomVoiceJoinHandler(session *disruptor.Disruptor, db *bun.DB) scheduler.HandleFunc {
 	registerHandlerSingleton(HandlerTypeRandomVoiceJoin, func() any {
 		return newRandomVoiceJoinHandler(session, db)
 	})
@@ -32,7 +32,7 @@ func NewRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 	return cb
 }
 
-func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler.HandleFunc {
+func newRandomVoiceJoinHandler(session *disruptor.Disruptor, db *bun.DB) scheduler.HandleFunc {
 	return func(ctx context.Context) error {
 		chance := util.RandomInt(0, 101) // Use float for better precision
 
@@ -56,7 +56,7 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 	}
 }
 
-func processGuild(ctx context.Context, session *disruptor.Session, guild models.Guild) error {
+func processGuild(ctx context.Context, session *disruptor.Disruptor, guild models.Guild) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -87,7 +87,7 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild models.
 	return nil
 }
 
-func determineVoiceChannelID(ctx context.Context, session *disruptor.Session, guild models.Guild) (snowflake.ID, error) {
+func determineVoiceChannelID(ctx context.Context, session *disruptor.Disruptor, guild models.Guild) (snowflake.ID, error) {
 	available, err := getAvailableVoiceChannels(ctx, session, guild)
 	if err != nil {
 		return 0, err
@@ -130,7 +130,7 @@ func determineVoiceChannelID(ctx context.Context, session *disruptor.Session, gu
 	return available[0], nil // fallback
 }
 
-func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, guild models.Guild) ([]snowflake.ID, error) {
+func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Disruptor, guild models.Guild) ([]snowflake.ID, error) {
 	if session.Caches.GuildSoundboardSoundsLen(guild.ID) == 0 {
 		return nil, fmt.Errorf("there are no soundboard sounds available")
 	}

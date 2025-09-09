@@ -20,7 +20,7 @@ var GoErrDefer = middleware.GoErrDefer(
 			},
 		})
 		if err != nil {
-			e.Client().Logger.Error("Failed to update interaction response", slog.Any("error", err))
+			e.Client().Logger.ErrorContext(e.Ctx, "Failed to update interaction response", slog.Any("error", err))
 		}
 	},
 	discord.InteractionTypeApplicationCommand,

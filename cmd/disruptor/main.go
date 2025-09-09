@@ -25,10 +25,16 @@ import (
 	"github.com/XanderD99/disruptor/pkg/processes"
 )
 
+var (
+	version = "unknown"
+	commit  = "unknown"
+)
+
 //nolint:gocyclo
 func main() {
 	// Note: Context cancellation and graceful shutdown are handled by processes.Manager.
 	// This keeps main.go focused on initialization and wiring.
+	slog.Info("starting disruptor...", slog.String("version", version), slog.String("commit", commit))
 
 	cfg, err := Load()
 	if err != nil {
@@ -111,9 +117,9 @@ func initDiscordProcesses(cfg Config, logger *slog.Logger, db *bun.DB, scheduleM
 	session, err := disruptor.New(
 		cfg.Disruptor,
 		disruptor.WithMiddlewares(
+			middlewares.GoErrDefer,
 			middlewares.Otel,
 			middlewares.Logger,
-			middlewares.GoErrDefer,
 		),
 		disruptor.WithCommands(
 			commands.Play(),

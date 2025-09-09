@@ -100,7 +100,7 @@ type contextKey string
 
 const loggerKey contextKey = "logger"
 
-func GetFromContext(ctx context.Context) *slog.Logger {
+func FromContext(ctx context.Context) *slog.Logger {
 	logger := ctx.Value(loggerKey)
 	if logger == nil {
 		return slog.Default()

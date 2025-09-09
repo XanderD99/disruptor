@@ -83,7 +83,7 @@ func (ig *Scheduler) Start(ctx context.Context) {
 		<-ig.stopCh
 	}()
 
-	logger := logging.GetFromContext(ctx)
+	logger := logging.FromContext(ctx)
 
 	for {
 		select {

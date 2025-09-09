@@ -20,28 +20,25 @@ type next struct {
 }
 
 func Next(db *bun.DB, manager *scheduler.Manager) disruptor.Command {
-	return next{
-		manager: manager,
-		db:      db,
-	}
+	return next{manager: manager, db: db}
 }
 
 // Load implements disruptor.Command.
-func (p next) Load(r handler.Router) {
-	r.SlashCommand("/next", p.handle)
+func (n next) Load(r handler.Router) {
+	r.SlashCommand("/next", n.handle)
 }
 
 // Options implements disruptor.Command.
-func (p next) Options() discord.SlashCommandCreate {
+func (n next) Options() discord.SlashCommandCreate {
 	return discord.SlashCommandCreate{
 		Name:        "next",
 		Description: "Get next interval time.",
 	}
 }
 
-func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
+func (n next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEvent) error {
 	// Get logger from context (added by the middleware)
-	logger := logging.GetFromContext(e.Ctx)
+	logger := logging.FromContext(e.Ctx)
 
 	guildID := e.GuildID()
 	if guildID == nil {
@@ -49,13 +46,13 @@ func (p next) handle(_ discord.SlashCommandInteractionData, e *handler.CommandEv
 	}
 
 	guild := models.Guild{ID: *guildID}
-	if err := p.db.NewSelect().Model(&guild).WherePK().Scan(e.Ctx, &guild); err != nil {
+	if err := n.db.NewSelect().Model(&guild).WherePK().Scan(e.Ctx, &guild); err != nil {
 		return fmt.Errorf("failed to find guild: %w", err)
 	}
 
 	logger.DebugContext(e.Ctx, "looking up scheduler for guild", "interval", guild.Interval)
 
-	group, ok := p.manager.GetScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval)
+	group, ok := n.manager.GetScheduler(handlers.HandlerTypeRandomVoiceJoin, guild.Interval)
 	if !ok {
 		logger.WarnContext(e.Ctx, "no scheduler found for interval", "interval", guild.Interval)
 		return fmt.Errorf("no scheduler found")

@@ -11,29 +11,26 @@ import (
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
-type disconnect struct {
-}
+type disconnect struct{}
 
-func Disconnect() disruptor.Command {
-	return disconnect{}
-}
+func Disconnect() disruptor.Command { return disconnect{} }
 
 // Load implements disruptor.Command.
-func (p disconnect) Load(r handler.Router) {
-	r.SlashCommand("/disconnect", p.handle)
+func (d disconnect) Load(r handler.Router) {
+	r.SlashCommand("/disconnect", d.handle)
 }
 
 // Options implements disruptor.Command.
-func (p disconnect) Options() discord.SlashCommandCreate {
+func (d disconnect) Options() discord.SlashCommandCreate {
 	return discord.SlashCommandCreate{
 		Name:        "disconnect",
 		Description: "Disconnect the bot from the voice channel",
 	}
 }
 
-func (p disconnect) handle(_ discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
+func (d disconnect) handle(_ discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
 	// Get logger from context (added by the middleware)
-	logger := logging.GetFromContext(event.Ctx)
+	logger := logging.FromContext(event.Ctx)
 
 	client := event.Client()
 	guildID := event.GuildID()

@@ -19,9 +19,7 @@ type chance struct {
 }
 
 func Chance(db *bun.DB) disruptor.Command {
-	return chance{
-		db: db,
-	}
+	return chance{db: db}
 }
 
 // Load implements disruptor.Command.
@@ -46,7 +44,7 @@ func (c chance) Options() discord.SlashCommandCreate {
 
 func (c chance) handle(d discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
 	// Get logger from context (added by the middleware)
-	logger := logging.GetFromContext(event.Ctx)
+	logger := logging.FromContext(event.Ctx)
 
 	guildID := event.GuildID()
 	if guildID == nil {

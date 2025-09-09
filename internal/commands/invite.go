@@ -11,9 +11,7 @@ import (
 
 type invite struct{}
 
-func Invite() disruptor.Command {
-	return invite{}
-}
+func Invite() disruptor.Command { return invite{} }
 
 // Load implements disruptor.Command.
 func (i invite) Load(r handler.Router) {

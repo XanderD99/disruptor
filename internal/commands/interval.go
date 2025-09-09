@@ -23,10 +23,7 @@ type interval struct {
 }
 
 func Interval(db *bun.DB, manager *scheduler.Manager) disruptor.Command {
-	return interval{
-		manager: manager,
-		db:      db,
-	}
+	return interval{manager: manager, db: db}
 }
 
 // Load implements disruptor.Command.
@@ -51,7 +48,7 @@ func (i interval) Options() discord.SlashCommandCreate {
 
 func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.CommandEvent) error {
 	// Get logger from context (added by the middleware)
-	logger := logging.GetFromContext(event.Ctx)
+	logger := logging.FromContext(event.Ctx)
 
 	guildID := event.GuildID()
 	if guildID == nil {
