@@ -88,8 +88,8 @@ func (i interval) handle(d discord.SlashCommandInteractionData, event *handler.C
 		return fmt.Errorf("failed to parse duration: %w", err)
 	}
 
-	if guild.Interval < (time.Minute * 10) {
-		return fmt.Errorf("invalid duration: %s, must be greater or equal than 10m", intervalString)
+	if guild.Interval < (time.Minute) {
+		return fmt.Errorf("invalid duration: %s, must be greater or equal than 1m", intervalString)
 	}
 
 	if guild.Interval > (time.Hour * 24) {

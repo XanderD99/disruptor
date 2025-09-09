@@ -6,7 +6,9 @@ import (
 	"os"
 
 	slogdiscord "github.com/betrayy/slog-discord"
+	"github.com/grafana/loki-client-go/loki"
 	"github.com/lmittmann/tint"
+	slogloki "github.com/samber/slog-loki/v3"
 	slogmulti "github.com/samber/slog-multi"
 )
 
@@ -30,6 +32,20 @@ type Config struct {
 		// 📦 Whether to wait for Discord messages to be sent before continuing
 		Sync bool `env:"SYNC" default:"false"`
 	} `envPrefix:"DISCORD_"`
+
+	Loki struct {
+		// 📡 Loki endpoint URL for sending log messages
+		Endpoint string `env:"ENDPOINT"`
+
+		// 📉 Minimum log level for Loki messages, defaults to info level
+		MinLevel slog.Level `env:"MIN_LEVEL" default:"debug"`
+
+		// 🏷️ Labels to attach to Loki log entries, in key=value format
+		Labels map[string]string `env:"LABELS" envSeparator:","`
+
+		// 📦 Whether to wait for Loki messages to be sent before continuing
+		Sync bool `env:"SYNC" default:"false"`
+	} `envPrefix:"LOKI_"`
 }
 
 func New(cfg Config) (*slog.Logger, error) {
@@ -50,6 +66,19 @@ func New(cfg Config) (*slog.Logger, error) {
 			return nil, err
 		}
 		handlers = append(handlers, discordHandler)
+	}
+
+	if cfg.Loki.Endpoint != "" {
+		config, err := loki.NewDefaultConfig(cfg.Loki.Endpoint)
+		if err != nil {
+			return nil, err
+		}
+		client, err := loki.New(config)
+		if err != nil {
+			return nil, err
+		}
+
+		handlers = append(handlers, slogloki.Option{Level: cfg.Loki.MinLevel, Client: client}.NewLokiHandler())
 	}
 
 	if cfg.PrettyPrint {

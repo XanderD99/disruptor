@@ -33,6 +33,7 @@ WORKDIR /app
 
 # Copy only the built binary from the builder stage
 COPY --from=build /app/output/bin/disruptor /bin/disruptor
+
 COPY --from=build /app/output/bin/migrate /bin/migrate
 # Copy migration files needed by the migrate binary
 COPY --from=build /app/cmd/migrate/migrations/ /app/cmd/migrate/migrations/
