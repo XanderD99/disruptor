@@ -13,7 +13,6 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/models"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/internal/util"
@@ -34,7 +33,7 @@ func NewRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 }
 
 func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler.HandleFunc {
-	originalHandler := func(ctx context.Context) error {
+	return func(ctx context.Context) error {
 		chance := util.RandomInt(0, 101) // Use float for better precision
 
 		interval, ok := util.GetIntervalFromContext(ctx)
@@ -55,9 +54,6 @@ func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 			}
 		})
 	}
-
-	// Wrap with metrics collection
-	return metrics.WithJobMetrics(HandlerTypeRandomVoiceJoin, originalHandler)
 }
 
 func processGuild(ctx context.Context, session *disruptor.Session, guild models.Guild) error {
@@ -78,20 +74,16 @@ func processGuild(ctx context.Context, session *disruptor.Session, guild models.
 	}
 
 	// Record voice connection attempt
-	audioMetrics := metrics.NewAudioMetrics()
 
 	sound, err := util.GetRandomSound(session.Client, guild.ID)
 	if err != nil {
-		audioMetrics.RecordVoiceConnectionAttempt(guild.ID, false)
 		return fmt.Errorf("failed to get random sound: %w", err)
 	}
 
 	if err := util.PlaySound(ctx, session.Client, guild.ID, channelID, sound.URL()); err != nil {
-		audioMetrics.RecordVoiceConnectionAttempt(guild.ID, false)
 		return fmt.Errorf("failed to play sound: %w", err)
 	}
 
-	audioMetrics.RecordVoiceConnectionAttempt(guild.ID, true)
 	return nil
 }
 

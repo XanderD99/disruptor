@@ -10,16 +10,14 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/pkg/logging"
 )
 
 func NewManager(opts ...Option[Manager]) *Manager {
 	m := &Manager{
-		schedulers:       make(map[string]*Scheduler),
-		builders:         make(map[string]SchedulerBuilder),
-		logger:           slog.Default(),
-		schedulerMetrics: metrics.NewSchedulerMetrics(),
+		schedulers: make(map[string]*Scheduler),
+		builders:   make(map[string]SchedulerBuilder),
+		logger:     slog.Default(),
 	}
 
 	for _, opt := range opts {
@@ -50,8 +48,7 @@ type Manager struct {
 	builders   map[string]SchedulerBuilder
 
 	// Dependencies
-	logger           *slog.Logger
-	schedulerMetrics *metrics.SchedulerMetrics
+	logger *slog.Logger
 
 	mu sync.RWMutex
 
@@ -122,9 +119,6 @@ func (m *Manager) Stop() error {
 
 	m.schedulers = make(map[string]*Scheduler)
 
-	// Update queue depth metrics to 0
-	m.schedulerMetrics.UpdateQueueDepth(0)
-
 	m.logger.Info("voice audio scheduler manager stopped successfully")
 	return nil
 }
@@ -157,9 +151,6 @@ func (m *Manager) AddScheduler(key string, interval time.Duration) error {
 
 	group := builder(interval)
 	m.schedulers[schedKey] = group
-
-	// Update queue depth metrics
-	m.schedulerMetrics.UpdateQueueDepth(int64(len(m.schedulers)))
 
 	m.logger.Info("new interval group added", slog.String("key", key), slog.Duration("interval", interval))
 	if m.ctx != nil {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -19,9 +18,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/commands"
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/listeners"
-	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/internal/middlewares"
-	"github.com/XanderD99/disruptor/internal/otel"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
@@ -45,16 +42,6 @@ func main() {
 
 	pm := processes.NewManager(logger)
 
-	pg, err := initServerGroup(cfg)
-	if err != nil {
-		log.Fatalf("Error initializing HTTP servers: %v", err)
-	}
-	pm.AddProcessGroup(pg)
-
-	// Start system metrics collection
-	systemMetrics := metrics.NewSystemMetrics()
-	go systemMetrics.StartSystemMetricsCollection(context.Background(), 30*time.Second)
-
 	pg, database, err := initDatabase(cfg, logger)
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
@@ -77,25 +64,6 @@ func main() {
 	if err := pm.Run(); err != nil {
 		log.Fatalf("Error running process manager: %v", err)
 	}
-}
-
-func initServerGroup(cfg Config) (*processes.ProcessGroup, error) {
-	group := processes.NewGroup("servers", time.Second*5)
-
-	// Initialize OpenTelemetry metrics and get the Prometheus exporter
-	promExporter, err := otel.InitPrometheusExporter()
-	if err != nil {
-		return nil, fmt.Errorf("error initializing OpenTelemetry metrics: %w", err)
-	}
-
-	// Initialize metrics server with OpenTelemetry Prometheus exporter
-	metricsServer, err := metrics.NewServerWithExporter(cfg.Metrics, promExporter)
-	if err != nil {
-		return nil, fmt.Errorf("error creating metrics server: %w", err)
-	}
-	group.AddProcessWithCtx("metrics", metricsServer.Run, false, nil)
-
-	return group, nil
 }
 
 func initSchedulers(logger *slog.Logger) (*processes.ProcessGroup, *scheduler.Manager, error) {

@@ -26,7 +26,7 @@ func (c Config) ToShardManagerOpts() []sharding.ConfigOpt {
 		sharding.WithShardCount(c.Sharding.ShardCount),
 		sharding.WithAutoScaling(c.Sharding.Autoscaling),
 		sharding.WithGatewayConfigOpts(
-			gateway.WithIntents(gateway.IntentGuilds, gateway.IntentGuildVoiceStates, gateway.IntentGuildExpressions),
+			gateway.WithIntents(gateway.IntentGuilds, gateway.IntentGuildVoiceStates, gateway.IntentGuildExpressions, gateway.IntentGuildMembers),
 			gateway.WithCompress(true),
 			gateway.WithPresenceOpts(gateway.WithListeningActivity("to your soundboards")),
 		),

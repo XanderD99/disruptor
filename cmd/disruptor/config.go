@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
-	"github.com/XanderD99/disruptor/internal/metrics"
 	"github.com/XanderD99/disruptor/pkg/logging"
 
 	"github.com/caarlos0/env/v11"
@@ -15,8 +14,6 @@ type Config struct {
 
 	// 📜 Logging configuration for the bot
 	Logging logging.Config `envPrefix:"LOGGING_"`
-	// 📊 Metrics configuration for Prometheus
-	Metrics metrics.Config `envPrefix:"METRICS_" `
 
 	// 🗄️ Configuration for the database
 	Database struct {
