@@ -35,7 +35,7 @@ func NewRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler
 
 func newRandomVoiceJoinHandler(session *disruptor.Session, db *bun.DB) scheduler.HandleFunc {
 	originalHandler := func(ctx context.Context) error {
-		chance := util.RandomFloat(0, 100) // Use float for better precision
+		chance := util.RandomInt(0, 101) // Use float for better precision
 
 		interval, ok := util.GetIntervalFromContext(ctx)
 		if !ok {
@@ -102,7 +102,7 @@ func determineVoiceChannelID(ctx context.Context, session *disruptor.Session, gu
 	}
 
 	if len(available) == 0 {
-		return 0, fmt.Errorf("no available voice channels")
+		return 0, nil // No available channels
 	}
 
 	if len(available) == 1 {
@@ -179,9 +179,9 @@ func getAvailableVoiceChannels(ctx context.Context, session *disruptor.Session, 
 	return filtered, nil
 }
 
-func getEligibleGuilds(ctx context.Context, db *bun.DB, interval time.Duration, chance float64) ([]models.Guild, error) {
+func getEligibleGuilds(ctx context.Context, db *bun.DB, interval time.Duration, chance int) ([]models.Guild, error) {
 	guilds := make([]models.Guild, 0)
-	if err := db.NewSelect().Model(&guilds).Where("chance <= ? AND interval = ?", chance, interval).Relation("Channels").Scan(ctx); err != nil {
+	if err := db.NewSelect().Model(&guilds).Where("chance >= ? AND interval = ?", chance, interval).Relation("Channels").Scan(ctx); err != nil {
 		return nil, fmt.Errorf("failed to find eligible guilds: %w", err)
 	}
 
