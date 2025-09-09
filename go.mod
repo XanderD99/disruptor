@@ -24,7 +24,7 @@ require (
 	github.com/uptrace/bun/driver/sqliteshim v1.2.15
 	github.com/uptrace/bun/extra/bunotel v1.2.15
 	github.com/urfave/cli/v2 v2.27.7
-	golang.org/x/sync v0.16.0
+	golang.org/x/sync v0.17.0
 )
 
 require (
