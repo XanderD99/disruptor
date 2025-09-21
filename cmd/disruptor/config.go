@@ -15,6 +15,11 @@ type Config struct {
 	// 📜 Logging configuration for the bot
 	Logging logging.Config `envPrefix:"LOGGING_"`
 
+	Otel struct {
+		// 🔗 OpenTelemetry endpoint
+		Endpoint string `env:"ENDPOINT" default:"localhost:4318"`
+	} `envPrefix:"OTEL_"`
+
 	// 🗄️ Configuration for the database
 	Database struct {
 		// 🔗 Database type to use

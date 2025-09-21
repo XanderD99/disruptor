@@ -19,6 +19,7 @@ import (
 	"github.com/XanderD99/disruptor/internal/disruptor"
 	"github.com/XanderD99/disruptor/internal/listeners"
 	"github.com/XanderD99/disruptor/internal/middlewares"
+	"github.com/XanderD99/disruptor/internal/otel"
 	"github.com/XanderD99/disruptor/internal/scheduler"
 	"github.com/XanderD99/disruptor/internal/scheduler/handlers"
 	"github.com/XanderD99/disruptor/pkg/logging"
@@ -44,6 +45,10 @@ func main() {
 	logger, err := logging.New(cfg.Logging)
 	if err != nil {
 		log.Fatalf("Error initializing logger: %v", err)
+	}
+
+	if err := otel.InitTracing(cfg.Otel.Endpoint); err != nil {
+		log.Fatalf("Error initializing OpenTelemetry: %v", err)
 	}
 
 	pm := processes.NewManager(logger)
