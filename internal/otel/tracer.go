@@ -13,7 +13,7 @@ import (
 )
 
 func InitTracing(otelEndpoint string) error {
-	opts := []otlptracehttp.Option{otlptracehttp.WithEndpoint(otelEndpoint)}
+	opts := []otlptracehttp.Option{otlptracehttp.WithEndpoint(otelEndpoint), otlptracehttp.WithInsecure()}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
