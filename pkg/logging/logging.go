@@ -6,9 +6,7 @@ import (
 	"os"
 
 	slogdiscord "github.com/betrayy/slog-discord"
-	"github.com/grafana/loki-client-go/loki"
 	"github.com/lmittmann/tint"
-	slogloki "github.com/samber/slog-loki/v3"
 	slogmulti "github.com/samber/slog-multi"
 )
 
@@ -68,18 +66,18 @@ func New(cfg Config) (*slog.Logger, error) {
 		handlers = append(handlers, discordHandler)
 	}
 
-	if cfg.Loki.Endpoint != "" {
-		config, err := loki.NewDefaultConfig(cfg.Loki.Endpoint)
-		if err != nil {
-			return nil, err
-		}
-		client, err := loki.New(config)
-		if err != nil {
-			return nil, err
-		}
+	// if cfg.Loki.Endpoint != "" {
+	// 	// config, err := loki.NewDefaultConfig(cfg.Loki.Endpoint)
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
+	// 	// client, err := loki.New(config)
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
 
-		handlers = append(handlers, slogloki.Option{Level: cfg.Loki.MinLevel, Client: client}.NewLokiHandler())
-	}
+	// 	// handlers = append(handlers, slogloki.Option{Level: cfg.Loki.MinLevel, Client: client}.NewLokiHandler())
+	// }
 
 	if cfg.PrettyPrint {
 		handlers = append(handlers, tint.NewHandler(os.Stdout, &tint.Options{
