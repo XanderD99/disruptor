@@ -10,7 +10,7 @@ require (
 	github.com/XanderD99/bunslog v0.1.0
 	github.com/betrayy/slog-discord v0.1.0
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/disgoorg/disgo v0.19.0-rc.6
+	github.com/disgoorg/disgo v0.19.0-rc.8
 	github.com/disgoorg/ffmpeg-audio v0.0.0-20250829163925-73409e4eab51
 	github.com/disgoorg/omit v1.0.0
 	github.com/disgoorg/oteldisgo v0.0.0-20240505221440-b5ef66d86b2c
@@ -44,6 +44,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.32 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
